@@ -7,11 +7,27 @@ Agent**) as one app that branches by role after login, and all of its key
 processes: registration & authentication for Users and Insurance Agents, a
 vehicle insurance information database, a free-towing eligibility check, a
 distance-based tow charge calculation, booking confirmation, and real-time
-tracking of the tow vehicle's arrival.
+tracking of the tow vehicle's arrival. A fourth role, **Workshop**, was added
+beyond the brief (see below).
 
 ## Beyond the brief
 
-Three additions that go past the minimum key processes:
+Five additions that go past the minimum key processes:
+
+- **Workshop as a 4th entity** — panel repair centers are no longer just
+  Admin-seeded map pins. A Workshop is a real, self-registering role that
+  sets its own location (map picker) and **manages its own fleet of tow
+  truck drivers** (add/remove, toggle available/busy/offline). Users choose
+  which workshop to use themselves: the Request Tow picker lists every
+  workshop sorted by distance from the pickup pin, defaulting to the User's
+  **preferred workshop** (★ toggle, saved on their profile) if they've set
+  one, otherwise the nearest. See `lib/screens/workshop/`.
+- **Road-following real-time tracking** — the tow truck marker no longer
+  cuts a straight line to the user like an early prototype would. It follows
+  an actual driving route fetched from OSRM (`RoutingService`), animated at
+  constant speed along the real road polyline (`RouteResult.pointAt`,
+  distance-weighted, not point-index-weighted) — the same idea as Grab/Uber's
+  driver tracking.
 
 - **Payment gating + invoices** — a chargeable tow isn't just calculated, it
   has to actually be paid. A new **Payments** tab lists every chargeable
@@ -40,6 +56,7 @@ Three additions that go past the minimum key processes:
 | Tow service booking confirmation | `lib/screens/user/request_tow_screen.dart` (includes driver ETA comparison) |
 | Real-time tracking of tow vehicle arrival | `lib/services/tow_tracking_simulator.dart`, `lib/screens/user/booking_tracking_screen.dart` |
 | Admin module | `lib/screens/admin/` (users, repair centers, all bookings, analytics, default tow rate) |
+| *(beyond brief)* Workshop module + driver fleet | `lib/screens/workshop/`, `lib/models/driver.dart` |
 | *(beyond brief)* Payment collection + invoicing | `lib/services/payment_gate_service.dart`, `lib/screens/user/payments_screen.dart`, `lib/screens/invoice_screen.dart` |
 
 ## Architecture
@@ -49,17 +66,20 @@ Three additions that go past the minimum key processes:
 - **Firebase**: Auth (email/password) + Cloud Firestore. See `lib/services/`
   for the data-access layer — screens never call `cloud_firestore` directly.
 - **Maps**: `flutter_map` + OpenStreetMap tiles (no Google Maps API key/
-  billing needed). Distance is computed as straight-line (Haversine, see
-  `lib/utils/distance_utils.dart`) rather than routed distance — a
-  deliberate, documented simplification for a student prototype.
-- **Real-time tracking**: fully simulated client-side (`TowTrackingSimulator`)
-  — a marker animates from a randomized nearby start point to the pickup
-  location over ~75s once a booking is confirmed, driving the booking through
+  billing needed). The tow-charge *distance* is still straight-line
+  (Haversine, see `lib/utils/distance_utils.dart`) — a deliberate,
+  documented simplification kept stable/tested for the billing math — but
+  the *tracking animation* now follows real roads (see below).
+- **Real-time tracking**: `RoutingService` fetches an actual road route from
+  OSRM's public routing API once a booking is confirmed (falling back to a
+  straight line if the network call fails), and `TowTrackingSimulator`
+  animates a marker along it at constant speed (distance-weighted
+  interpolation, not point-index) over ~75s, driving the booking through
   `pending → confirmed → en route → arrived → completed`. No real device GPS
   required to demo it.
-- One app, three roles: `users/{uid}.role` is `user`, `agent`, or `admin`;
-  `lib/screens/role_router.dart` sends the signed-in user to the matching
-  home shell after login.
+- One app, four roles: `users/{uid}.role` is `user`, `agent`, `admin`, or
+  `workshop`; `lib/screens/role_router.dart` sends the signed-in user to the
+  matching home shell after login.
 
 ## One-time setup
 
@@ -83,8 +103,11 @@ scripted:
    "User", then in the Firestore console open that user's document under
    `users/{uid}` and change `role` from `user` to `admin`. Admin isn't
    self-registerable by design (see the plan).
-6. **Seed at least one repair center**: log in as Admin → Centers tab → add
-   one (needed before any User can request a tow).
+6. **Register at least one Workshop and driver** so a User has somewhere to
+   book: register with role "Workshop", set its location in the My Workshop
+   tab, then add a driver in the Drivers tab. (Admin can also seed a bare
+   repair center from the Centers tab, but it won't have any drivers unless
+   a matching Workshop account manages it.)
 
 ## Running
 
@@ -103,9 +126,9 @@ flutter test
 end to end: fully within the free radius, exactly at the radius, beyond it,
 no linked policy (falls back to the Admin-set default rate), an expired
 policy, and a cancelled policy. `test/payment_gate_service_test.dart`,
-`test/driver_dispatch_service_test.dart`, and
-`test/booking_analytics_service_test.dart` cover the three "beyond the
-brief" additions the same way — pure logic, no Firebase needed to run them.
+`test/driver_dispatch_service_test.dart`, `test/booking_analytics_service_test.dart`,
+and `test/route_result_test.dart` cover the "beyond the brief" additions the
+same way — pure logic, no Firebase or network needed to run them.
 
 ## Project structure
 
@@ -116,13 +139,14 @@ lib/
   firebase_options.dart   flutterfire-generated config (placeholder until configured)
   models/                 plain Dart data classes (Firestore-serializable)
   services/                AuthService, FirestoreService, TowCalculationService,
-                            TowTrackingSimulator, PaymentGateService, DriverDispatchService,
-                            BookingAnalyticsService
+                            TowTrackingSimulator, RoutingService, PaymentGateService,
+                            DriverDispatchService, BookingAnalyticsService
   screens/
     auth/                  login, register
     user/                  dashboard, vehicles, request tow, live tracking, history, payments
     agent/                 manage policies
     admin/                 manage users, repair centers, all bookings, analytics, settings
+    workshop/               workshop profile/location, manage drivers, its bookings
     invoice_screen.dart    shared invoice view (User + Admin)
     role_router.dart       sends the signed-in user to the right module
 test/                     unit tests for all pure/calculation logic
