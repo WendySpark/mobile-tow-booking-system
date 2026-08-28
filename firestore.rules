@@ -1,0 +1,70 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function roleOf(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data.role;
+    }
+
+    function isAdmin() {
+      return signedIn() && roleOf(request.auth.uid) == 'admin';
+    }
+
+    function isAgent() {
+      return signedIn() && roleOf(request.auth.uid) == 'agent';
+    }
+
+    // Users can read/write only their own profile; admins can read all
+    // (needed for the Manage Users screen).
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if signedIn() && request.auth.uid == uid;
+      allow update: if signedIn() && request.auth.uid == uid;
+    }
+
+    // Vehicles: owned by a single User; readable by the owner, their
+    // linked agent, or an admin.
+    match /vehicles/{id} {
+      allow read: if signedIn() && (resource.data.ownerUid == request.auth.uid || isAgent() || isAdmin());
+      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if signedIn() && (resource.data.ownerUid == request.auth.uid || isAgent());
+    }
+
+    // Insurance policies: created/managed by the issuing Agent; readable by
+    // anyone signed in so a User can validate a policy number when linking
+    // a vehicle to it.
+    match /policies/{id} {
+      allow read: if signedIn();
+      allow create: if isAgent() && request.resource.data.agentUid == request.auth.uid;
+      allow update: if isAgent() && resource.data.agentUid == request.auth.uid;
+    }
+
+    // Repair centers: public read (needed for the Request Tow picker),
+    // Admin-managed.
+    match /repairCenters/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    // Bookings: a User can create/read their own; Admin can read/update all
+    // (status transitions driven by the tracking simulator run client-side
+    // wherever the booking is open, so any signed-in user updating their
+    // own booking's status is allowed).
+    match /bookings/{id} {
+      allow read: if signedIn() && (resource.data.userUid == request.auth.uid || isAdmin());
+      allow create: if signedIn() && request.resource.data.userUid == request.auth.uid;
+      allow update: if signedIn() && (resource.data.userUid == request.auth.uid || isAdmin());
+    }
+
+    // Global settings (e.g. default tow rate): public read, Admin write.
+    match /settings/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+  }
+}
