@@ -9,6 +9,27 @@ vehicle insurance information database, a free-towing eligibility check, a
 distance-based tow charge calculation, booking confirmation, and real-time
 tracking of the tow vehicle's arrival.
 
+## Beyond the brief
+
+Three additions that go past the minimum key processes:
+
+- **Payment gating + invoices** — a chargeable tow isn't just calculated, it
+  has to actually be paid. A new **Payments** tab lists every chargeable
+  booking and lets the User settle it (simulated card/online-banking/e-wallet
+  sheet); Admin can record a cash payment instead. **Requesting a new tow is
+  blocked while any past charge is unsettled** — `PaymentGateService` checks
+  this before the booking screen even opens. Every booking gets a formatted
+  **Invoice** (itemized distance breakdown, payment status/method/timestamp),
+  reachable from History, Payments, and Admin's booking list.
+- **Multi-driver ETA comparison** — instead of one hardcoded tow truck,
+  `DriverDispatchService` simulates 2–3 nearby drivers per pickup point and
+  sorts them by ETA; the user picks one before confirming, and that choice
+  drives the tracking simulation's start point.
+- **Admin analytics dashboard** — revenue collected vs. outstanding, a 7-day
+  booking-volume chart, free-vs-chargeable split, and bookings-by-repair-center,
+  all computed from bookings already in Firestore (`BookingAnalyticsService`,
+  charted with `fl_chart`).
+
 ## Key processes → where they live
 
 | Brief's key process | Implementation |
@@ -16,9 +37,10 @@ tracking of the tow vehicle's arrival.
 | User & Insurance Agent registration/authentication | `lib/screens/auth/`, `lib/services/auth_service.dart` |
 | Vehicle insurance information database | `lib/models/vehicle.dart`, `insurance_policy.dart`, `lib/screens/agent/manage_policies_screen.dart`, `lib/screens/user/vehicles_screen.dart` |
 | Free towing eligibility check + distance-based tow charge | `lib/services/tow_calculation_service.dart` (pure logic, unit tested in `test/`) |
-| Tow service booking confirmation | `lib/screens/user/request_tow_screen.dart` |
+| Tow service booking confirmation | `lib/screens/user/request_tow_screen.dart` (includes driver ETA comparison) |
 | Real-time tracking of tow vehicle arrival | `lib/services/tow_tracking_simulator.dart`, `lib/screens/user/booking_tracking_screen.dart` |
-| Admin module | `lib/screens/admin/` (users, repair centers, all bookings, default tow rate) |
+| Admin module | `lib/screens/admin/` (users, repair centers, all bookings, analytics, default tow rate) |
+| *(beyond brief)* Payment collection + invoicing | `lib/services/payment_gate_service.dart`, `lib/screens/user/payments_screen.dart`, `lib/screens/invoice_screen.dart` |
 
 ## Architecture
 
@@ -80,7 +102,10 @@ flutter test
 `test/tow_calculation_service_test.dart` covers the eligibility/charge logic
 end to end: fully within the free radius, exactly at the radius, beyond it,
 no linked policy (falls back to the Admin-set default rate), an expired
-policy, and a cancelled policy.
+policy, and a cancelled policy. `test/payment_gate_service_test.dart`,
+`test/driver_dispatch_service_test.dart`, and
+`test/booking_analytics_service_test.dart` cover the three "beyond the
+brief" additions the same way — pure logic, no Firebase needed to run them.
 
 ## Project structure
 
@@ -90,12 +115,15 @@ lib/
   app_state.dart          signed-in user session (Provider)
   firebase_options.dart   flutterfire-generated config (placeholder until configured)
   models/                 plain Dart data classes (Firestore-serializable)
-  services/                AuthService, FirestoreService, TowCalculationService, TowTrackingSimulator
+  services/                AuthService, FirestoreService, TowCalculationService,
+                            TowTrackingSimulator, PaymentGateService, DriverDispatchService,
+                            BookingAnalyticsService
   screens/
     auth/                  login, register
-    user/                  dashboard, vehicles, request tow, live tracking, history
+    user/                  dashboard, vehicles, request tow, live tracking, history, payments
     agent/                 manage policies
-    admin/                 manage users, repair centers, all bookings, settings
+    admin/                 manage users, repair centers, all bookings, analytics, settings
+    invoice_screen.dart    shared invoice view (User + Admin)
     role_router.dart       sends the signed-in user to the right module
-test/                     unit tests for the calculation logic
+test/                     unit tests for all pure/calculation logic
 ```
