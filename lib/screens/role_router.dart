@@ -7,10 +7,12 @@ import 'admin/admin_home_shell.dart';
 import 'agent/agent_home_shell.dart';
 import 'auth/login_screen.dart';
 import 'user/user_home_shell.dart';
+import 'workshop/workshop_home_shell.dart';
 
 /// Sends a signed-in user to the right module based on their stored role.
-/// This is the entire "Admin, User, Insurance Agent modules" split: one
-/// codebase, branching after authentication rather than three separate apps.
+/// This is the entire "Admin, User, Insurance Agent, Workshop modules"
+/// split: one codebase, branching after authentication rather than
+/// separate apps per role.
 class RoleRouter extends StatelessWidget {
   const RoleRouter({super.key});
 
@@ -29,6 +31,7 @@ class RoleRouter extends StatelessWidget {
       UserRole.admin => const AdminHomeShell(),
       UserRole.agent => const AgentHomeShell(),
       UserRole.user => const UserHomeShell(),
+      UserRole.workshop => const WorkshopHomeShell(),
     };
   }
 }

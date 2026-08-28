@@ -16,6 +16,7 @@ class Booking {
   final DateTime createdAt;
   final double truckStartLat;
   final double truckStartLng;
+  final String? driverId;
   final String? driverName;
   final double? driverEtaMinutes;
 
@@ -42,6 +43,7 @@ class Booking {
     required this.createdAt,
     required this.truckStartLat,
     required this.truckStartLng,
+    this.driverId,
     this.driverName,
     this.driverEtaMinutes,
     this.paid = false,
@@ -68,6 +70,7 @@ class Booking {
         createdAt: DateTime.parse(map['createdAt'] as String),
         truckStartLat: (map['truckStartLat'] as num?)?.toDouble() ?? 0,
         truckStartLng: (map['truckStartLng'] as num?)?.toDouble() ?? 0,
+        driverId: map['driverId'] as String?,
         driverName: map['driverName'] as String?,
         driverEtaMinutes: (map['driverEtaMinutes'] as num?)?.toDouble(),
         paid: map['paid'] as bool? ?? ((map['charge'] as num?)?.toDouble() ?? 0) == 0,
@@ -90,6 +93,7 @@ class Booking {
         'createdAt': createdAt.toIso8601String(),
         'truckStartLat': truckStartLat,
         'truckStartLng': truckStartLng,
+        'driverId': driverId,
         'driverName': driverName,
         'driverEtaMinutes': driverEtaMinutes,
         'paid': paid,
@@ -120,6 +124,7 @@ class Booking {
         createdAt: createdAt,
         truckStartLat: truckStartLat,
         truckStartLng: truckStartLng,
+        driverId: driverId,
         driverName: driverName,
         driverEtaMinutes: driverEtaMinutes,
         paid: paid ?? this.paid,

@@ -44,21 +44,45 @@ service cloud.firestore {
       allow update: if isAgent() && resource.data.agentUid == request.auth.uid;
     }
 
-    // Repair centers: public read (needed for the Request Tow picker),
-    // Admin-managed.
+    // Repair centers: public read (needed for the Request Tow workshop
+    // picker). Admin can manage any of them; a Workshop can only manage
+    // its own — by convention its center's doc id equals its own uid, so
+    // that check is just "does this doc's id match me".
     match /repairCenters/{id} {
       allow read: if signedIn();
-      allow write: if isAdmin();
+      allow write: if isAdmin() || (signedIn() && id == request.auth.uid);
     }
 
-    // Bookings: a User can create/read their own; Admin can read/update all
-    // (status transitions driven by the tracking simulator run client-side
-    // wherever the booking is open, so any signed-in user updating their
-    // own booking's status is allowed).
+    // Drivers: owned by a Workshop. Publicly readable (Request Tow needs
+    // to rank ETA candidates for any workshop the user picks); only the
+    // owning workshop (or Admin) can add/edit/remove a driver's own
+    // fields, but any signed-in user may flip just its `status` — a User
+    // does that when booking (marks the chosen driver busy) or completing
+    // a tow (marks them available again).
+    match /drivers/{id} {
+      allow read: if signedIn();
+      allow create: if isAdmin() || (signedIn() && request.resource.data.workshopUid == request.auth.uid);
+      allow delete: if isAdmin() || (signedIn() && resource.data.workshopUid == request.auth.uid);
+      allow update: if isAdmin() ||
+        (signedIn() && resource.data.workshopUid == request.auth.uid) ||
+        (signedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']));
+    }
+
+    // Bookings: a User can create/read their own; the Workshop a booking is
+    // routed to can read/update it (status, driver assignment); Admin can
+    // read/update all. Status transitions are driven by the tracking
+    // simulator run client-side wherever the booking is open, so any
+    // signed-in user updating their own booking's status is allowed.
     match /bookings/{id} {
-      allow read: if signedIn() && (resource.data.userUid == request.auth.uid || isAdmin());
+      allow read: if signedIn() &&
+        (resource.data.userUid == request.auth.uid ||
+         resource.data.repairCenterId == request.auth.uid ||
+         isAdmin());
       allow create: if signedIn() && request.resource.data.userUid == request.auth.uid;
-      allow update: if signedIn() && (resource.data.userUid == request.auth.uid || isAdmin());
+      allow update: if signedIn() &&
+        (resource.data.userUid == request.auth.uid ||
+         resource.data.repairCenterId == request.auth.uid ||
+         isAdmin());
     }
 
     // Global settings (e.g. default tow rate): public read, Admin write.

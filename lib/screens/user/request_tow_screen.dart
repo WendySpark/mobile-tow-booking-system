@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../app_state.dart';
 import '../../models/booking.dart';
 import '../../models/booking_status.dart';
+import '../../models/driver_status.dart';
 import '../../models/insurance_policy.dart';
 import '../../models/repair_center.dart';
 import '../../models/tow_driver.dart';
@@ -14,12 +15,15 @@ import '../../models/tow_quote.dart';
 import '../../models/vehicle.dart';
 import '../../services/driver_dispatch_service.dart';
 import '../../services/tow_calculation_service.dart';
+import '../../utils/distance_utils.dart';
 import 'booking_tracking_screen.dart';
 
 /// Covers "tow service booking confirmation" plus the "free towing service
 /// eligibility check" and "tow charge based on distance" key processes:
-/// pick a pickup point, choose a vehicle + repair center, see the computed
-/// quote live, then confirm.
+/// pick a pickup point, choose a vehicle, choose a workshop (nearest or
+/// preferred — see "user can choose to go to a workshop near them or their
+/// preferred workshop"), see the computed quote live, pick a driver from
+/// that workshop's fleet by ETA, then confirm.
 class RequestTowScreen extends StatefulWidget {
   const RequestTowScreen({super.key});
 
@@ -40,14 +44,57 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
   TowQuote? _quote;
   List<TowDriver> _drivers = [];
   TowDriver? _selectedDriver;
+  bool _hasAutoSelectedCenter = false;
+  bool _isLoadingDrivers = false;
   bool _isBooking = false;
   bool _isLocating = false;
 
-  void _refreshDrivers() {
-    final drivers = _dispatchService.findNearbyDrivers(pickupLat: _pickup.latitude, pickupLng: _pickup.longitude);
+  List<RepairCenter> _sortedByDistance(List<RepairCenter> centers) {
+    final sorted = [...centers];
+    sorted.sort((a, b) {
+      final da = haversineDistanceKm(lat1: _pickup.latitude, lng1: _pickup.longitude, lat2: a.latitude, lng2: a.longitude);
+      final db = haversineDistanceKm(lat1: _pickup.latitude, lng1: _pickup.longitude, lat2: b.latitude, lng2: b.longitude);
+      return da.compareTo(db);
+    });
+    return sorted;
+  }
+
+  void _autoSelectCenterIfNeeded(AppState appState, List<RepairCenter> sorted) {
+    if (_hasAutoSelectedCenter || sorted.isEmpty) return;
+    _hasAutoSelectedCenter = true;
+    final preferredId = appState.currentUser!.preferredWorkshopId;
+    final preferred = preferredId == null ? null : sorted.where((c) => c.id == preferredId).firstOrNull;
+    final chosen = preferred ?? sorted.first;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() => _selectedCenter = chosen);
+      _recomputeQuote(appState);
+    });
+  }
+
+  Future<void> _refreshDrivers() async {
+    if (_selectedCenter == null) {
+      setState(() {
+        _drivers = [];
+        _selectedDriver = null;
+      });
+      return;
+    }
+    setState(() => _isLoadingDrivers = true);
+    final available = await context
+        .read<AppState>()
+        .firestoreService
+        .fetchAvailableDrivers(_selectedCenter!.id);
+    if (!mounted) return;
+    final ranked = _dispatchService.rankDrivers(
+      availableDrivers: available,
+      pickupLat: _pickup.latitude,
+      pickupLng: _pickup.longitude,
+    );
     setState(() {
-      _drivers = drivers;
-      _selectedDriver = drivers.first;
+      _drivers = ranked;
+      _selectedDriver = ranked.isEmpty ? null : ranked.first;
+      _isLoadingDrivers = false;
     });
   }
 
@@ -84,11 +131,7 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
 
   Future<void> _recomputeQuote(AppState appState) async {
     if (_selectedVehicle == null || _selectedCenter == null) {
-      setState(() {
-        _quote = null;
-        _drivers = [];
-        _selectedDriver = null;
-      });
+      setState(() => _quote = null);
       return;
     }
 
@@ -112,7 +155,7 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
       _resolvedPolicy = policy;
       _quote = quote;
     });
-    _refreshDrivers();
+    await _refreshDrivers();
   }
 
   Future<void> _confirmBooking(AppState appState) async {
@@ -137,14 +180,16 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
       charge: _quote!.charge,
       status: BookingStatus.confirmed,
       createdAt: DateTime.now(),
-      truckStartLat: driver.startLat,
-      truckStartLng: driver.startLng,
+      truckStartLat: driver.baseLat,
+      truckStartLng: driver.baseLng,
+      driverId: driver.id,
       driverName: driver.name,
       driverEtaMinutes: driver.etaMinutes,
       paid: _quote!.charge == 0,
     );
 
     final id = await appState.firestoreService.createBooking(booking);
+    await appState.firestoreService.setDriverStatus(driver.id, DriverStatus.busy);
 
     if (!mounted) return;
     setState(() => _isBooking = false);
@@ -217,7 +262,7 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
             child: Text('Tap the map to set your pickup location.', style: TextStyle(fontSize: 12)),
           ),
           Expanded(
-            flex: 4,
+            flex: 5,
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -240,26 +285,62 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
                       );
                     },
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
+                  Text('Choose a Workshop', style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Sorted by distance from your pickup pin. Tap ★ to set your preferred workshop.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 8),
                   StreamBuilder<List<RepairCenter>>(
                     stream: appState.firestoreService.streamRepairCenters(),
                     builder: (context, snapshot) {
                       final centers = snapshot.data ?? [];
-                      return DropdownButtonFormField<RepairCenter>(
-                        initialValue: _selectedCenter,
-                        decoration: const InputDecoration(labelText: 'Panel Repair Center'),
-                        items:
-                            centers.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(),
-                        onChanged: (c) {
-                          setState(() => _selectedCenter = c);
-                          _recomputeQuote(appState);
-                        },
+                      final sorted = _sortedByDistance(centers);
+                      _autoSelectCenterIfNeeded(appState, sorted);
+                      if (sorted.isEmpty) {
+                        return const Text('No workshops available yet.', style: TextStyle(color: Colors.grey));
+                      }
+                      return Column(
+                        children: [
+                          for (final center in sorted)
+                            _WorkshopTile(
+                              center: center,
+                              distanceKm: haversineDistanceKm(
+                                lat1: _pickup.latitude,
+                                lng1: _pickup.longitude,
+                                lat2: center.latitude,
+                                lng2: center.longitude,
+                              ),
+                              isPreferred: appState.currentUser!.preferredWorkshopId == center.id,
+                              selected: _selectedCenter?.id == center.id,
+                              onTap: () {
+                                setState(() => _selectedCenter = center);
+                                _recomputeQuote(appState);
+                              },
+                              onStarTap: () => appState.setPreferredWorkshop(center.id),
+                            ),
+                        ],
                       );
                     },
                   ),
                   const SizedBox(height: 16),
                   if (_quote != null) _QuoteCard(quote: _quote!),
-                  if (_drivers.isNotEmpty) ...[
+                  if (_isLoadingDrivers)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (_selectedCenter != null && _drivers.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text(
+                        'This workshop has no available drivers right now — try another workshop.',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    )
+                  else if (_drivers.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     Text('Choose a Driver', style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 8),
@@ -285,6 +366,50 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+extension _FirstOrNull<T> on Iterable<T> {
+  T? get firstOrNull => isEmpty ? null : first;
+}
+
+class _WorkshopTile extends StatelessWidget {
+  const _WorkshopTile({
+    required this.center,
+    required this.distanceKm,
+    required this.isPreferred,
+    required this.selected,
+    required this.onTap,
+    required this.onStarTap,
+  });
+
+  final RepairCenter center;
+  final double distanceKm;
+  final bool isPreferred;
+  final bool selected;
+  final VoidCallback onTap;
+  final VoidCallback onStarTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: selected ? Colors.indigo.shade50 : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: selected ? Colors.indigo : Colors.transparent, width: 1.5),
+      ),
+      child: ListTile(
+        onTap: onTap,
+        leading: Icon(Icons.build_circle, color: selected ? Colors.indigo : Colors.grey),
+        title: Text(center.name),
+        subtitle: Text('${distanceKm.toStringAsFixed(1)} km away · ${center.address}'),
+        trailing: IconButton(
+          icon: Icon(isPreferred ? Icons.star : Icons.star_border, color: Colors.amber),
+          tooltip: isPreferred ? 'Your preferred workshop' : 'Set as preferred workshop',
+          onPressed: onStarTap,
+        ),
       ),
     );
   }

@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/app_user.dart';
 import '../models/booking.dart';
 import '../models/booking_status.dart';
+import '../models/driver.dart';
+import '../models/driver_status.dart';
 import '../models/insurance_policy.dart';
 import '../models/repair_center.dart';
 import '../models/vehicle.dart';
@@ -19,6 +21,9 @@ class FirestoreService {
       .collection('users')
       .snapshots()
       .map((s) => s.docs.map((d) => AppUser.fromMap(d.id, d.data())).toList());
+
+  Future<void> setPreferredWorkshop(String userUid, String workshopId) =>
+      _db.collection('users').doc(userUid).update({'preferredWorkshopId': workshopId});
 
   // ---- Vehicles ---------------------------------------------------------
   Future<String> addVehicle(Vehicle vehicle) async {
@@ -85,6 +90,45 @@ class FirestoreService {
     return doc.exists ? RepairCenter.fromMap(doc.id, doc.data()!) : null;
   }
 
+  /// A Workshop's own center is stored at `repairCenters/{workshopUid}` —
+  /// same collection Admin seeds into, but a fixed doc id so "my center"
+  /// is a direct lookup instead of a `where(ownerUid==...)` query.
+  Future<void> setWorkshopCenter(String workshopUid, RepairCenter center) =>
+      _db.collection('repairCenters').doc(workshopUid).set(center.toMap());
+
+  Future<RepairCenter?> getWorkshopCenter(String workshopUid) => getRepairCenter(workshopUid);
+
+  // ---- Drivers (managed by a Workshop) -------------------------------------
+  Future<String> addDriver(Driver driver) async {
+    final doc = await _db.collection('drivers').add(driver.toMap());
+    return doc.id;
+  }
+
+  Future<void> updateDriver(Driver driver) =>
+      _db.collection('drivers').doc(driver.id).update(driver.toMap());
+
+  Future<void> deleteDriver(String id) => _db.collection('drivers').doc(id).delete();
+
+  Future<void> setDriverStatus(String id, DriverStatus status) =>
+      _db.collection('drivers').doc(id).update({'status': status.value});
+
+  Stream<List<Driver>> streamDriversForWorkshop(String workshopUid) => _db
+      .collection('drivers')
+      .where('workshopUid', isEqualTo: workshopUid)
+      .snapshots()
+      .map((s) => s.docs.map((d) => Driver.fromMap(d.id, d.data())).toList());
+
+  /// One-off fetch of a workshop's currently-available drivers, used to
+  /// rank ETA candidates while booking a tow.
+  Future<List<Driver>> fetchAvailableDrivers(String workshopUid) async {
+    final snap = await _db
+        .collection('drivers')
+        .where('workshopUid', isEqualTo: workshopUid)
+        .where('status', isEqualTo: DriverStatus.available.value)
+        .get();
+    return snap.docs.map((d) => Driver.fromMap(d.id, d.data())).toList();
+  }
+
   // ---- Bookings -----------------------------------------------------------
   Future<String> createBooking(Booking booking) async {
     final doc = await _db.collection('bookings').add(booking.toMap());
@@ -116,6 +160,13 @@ class FirestoreService {
     final snap = await _db.collection('bookings').where('userUid', isEqualTo: userUid).get();
     return snap.docs.map((d) => Booking.fromMap(d.id, d.data())).toList();
   }
+
+  Stream<List<Booking>> streamBookingsForWorkshop(String workshopUid) => _db
+      .collection('bookings')
+      .where('repairCenterId', isEqualTo: workshopUid)
+      .orderBy('createdAt', descending: true)
+      .snapshots()
+      .map((s) => s.docs.map((d) => Booking.fromMap(d.id, d.data())).toList());
 
   Stream<List<Booking>> streamAllBookings() => _db
       .collection('bookings')

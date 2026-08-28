@@ -1,23 +1,22 @@
-/// A simulated tow driver candidate offered to the user during booking, so
-/// they can compare ETA before confirming — mirrors the "comparison of
-/// delivery time between available drivers" pattern from the brief's sibling
-/// petrol-delivery system, adapted for towing. Not persisted on its own;
-/// the chosen driver's name/ETA/start point are copied onto the Booking.
+/// ETA-ranked view of a real Driver for a specific pickup point — computed
+/// by DriverDispatchService, not persisted itself. Lets the Request Tow
+/// screen show "2.0 km away · ETA 4 min" without coupling the Driver model
+/// to any one booking's pickup location.
 class TowDriver {
   final String id;
   final String name;
   final double rating;
   final double distanceKm;
-  final double startLat;
-  final double startLng;
+  final double baseLat;
+  final double baseLng;
 
   const TowDriver({
     required this.id,
     required this.name,
     required this.rating,
     required this.distanceKm,
-    required this.startLat,
-    required this.startLng,
+    required this.baseLat,
+    required this.baseLng,
   });
 
   /// Simulated average tow-truck speed accounting for city traffic.

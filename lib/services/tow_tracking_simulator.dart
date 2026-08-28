@@ -4,27 +4,27 @@ import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../models/booking_status.dart';
+import '../models/route_result.dart';
 import '../utils/constants.dart';
 import 'firestore_service.dart';
 
 /// Drives the "real-time tracking of tow vehicle arrival" key process for
-/// the prototype. Animates a marker from the truck's start point to the
-/// pickup location entirely client-side (see plan: no real device GPS, no
-/// repeated Firestore writes needed for the animation itself) while still
-/// persisting the booking status transitions so other roles/screens
-/// watching Firestore see the same lifecycle.
+/// the prototype. Animates a marker along [route] — a real road-following
+/// path from RoutingService, not a straight line — entirely client-side
+/// (see plan: no real device GPS, no repeated Firestore writes needed for
+/// the animation itself) while still persisting the booking status
+/// transitions so other roles/screens watching Firestore see the same
+/// lifecycle.
 class TowTrackingSimulator {
   TowTrackingSimulator({
     required this.bookingId,
-    required this.start,
-    required this.end,
+    required this.route,
     required this.firestoreService,
     this.duration = kSimulatedTowDuration,
-  }) : position = ValueNotifier(start);
+  }) : position = ValueNotifier(route.points.first);
 
   final String bookingId;
-  final LatLng start;
-  final LatLng end;
+  final RouteResult route;
   final FirestoreService firestoreService;
   final Duration duration;
 
@@ -45,10 +45,7 @@ class TowTrackingSimulator {
     final elapsed = DateTime.now().difference(_startedAt!);
     final t = (elapsed.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0);
 
-    position.value = LatLng(
-      start.latitude + (end.latitude - start.latitude) * t,
-      start.longitude + (end.longitude - start.longitude) * t,
-    );
+    position.value = route.pointAt(t);
 
     if (t >= 1.0) {
       timer.cancel();

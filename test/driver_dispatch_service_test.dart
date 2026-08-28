@@ -1,45 +1,64 @@
-import 'dart:math';
-
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mobile_tow_booking_system/models/driver.dart';
 import 'package:mobile_tow_booking_system/services/driver_dispatch_service.dart';
 
 void main() {
   const service = DriverDispatchService();
+  const pickupLat = 3.1390;
+  const pickupLng = 101.6869;
 
-  group('DriverDispatchService.findNearbyDrivers', () {
-    test('returns the requested number of drivers', () {
-      final drivers = service.findNearbyDrivers(
-        pickupLat: 3.1390,
-        pickupLng: 101.6869,
-        count: 3,
-        random: Random(1),
+  Driver driverAt({required String id, required double lat, required double lng}) => Driver(
+        id: id,
+        workshopUid: 'w1',
+        name: 'Driver $id',
+        phone: '0100000000',
+        plateNumber: 'ABC$id',
+        baseLat: lat,
+        baseLng: lng,
       );
-      expect(drivers, hasLength(3));
+
+  group('DriverDispatchService.rankDrivers', () {
+    test('returns one TowDriver per input driver', () {
+      final drivers = [
+        driverAt(id: '1', lat: pickupLat + 0.01, lng: pickupLng),
+        driverAt(id: '2', lat: pickupLat + 0.02, lng: pickupLng),
+      ];
+      final ranked = service.rankDrivers(availableDrivers: drivers, pickupLat: pickupLat, pickupLng: pickupLng);
+      expect(ranked, hasLength(2));
     });
 
-    test('sorts drivers by ETA ascending (closest first)', () {
-      final drivers = service.findNearbyDrivers(
-        pickupLat: 3.1390,
-        pickupLng: 101.6869,
-        count: 4,
-        random: Random(42),
+    test('sorts by ETA ascending — the closer driver wins', () {
+      final near = driverAt(id: 'near', lat: pickupLat + 0.01, lng: pickupLng); // ~1.1km
+      final far = driverAt(id: 'far', lat: pickupLat + 0.08, lng: pickupLng); // ~8.9km
+      final ranked = service.rankDrivers(
+        availableDrivers: [far, near],
+        pickupLat: pickupLat,
+        pickupLng: pickupLng,
       );
-      for (var i = 1; i < drivers.length; i++) {
-        expect(drivers[i].etaMinutes, greaterThanOrEqualTo(drivers[i - 1].etaMinutes));
-      }
+      expect(ranked.first.id, 'near');
+      expect(ranked.last.id, 'far');
+      expect(ranked.first.etaMinutes, lessThan(ranked.last.etaMinutes));
     });
 
-    test('every driver is within the simulated dispatch radius', () {
-      final drivers = service.findNearbyDrivers(
-        pickupLat: 3.1390,
-        pickupLng: 101.6869,
-        count: 5,
-        random: Random(7),
+    test('an empty driver list ranks to an empty list', () {
+      final ranked = service.rankDrivers(availableDrivers: [], pickupLat: pickupLat, pickupLng: pickupLng);
+      expect(ranked, isEmpty);
+    });
+
+    test('carries the driver name and rating through unchanged', () {
+      final driver = Driver(
+        id: 'd1',
+        workshopUid: 'w1',
+        name: 'Ah Kow',
+        phone: '0123456789',
+        plateNumber: 'WXY123',
+        rating: 4.8,
+        baseLat: pickupLat,
+        baseLng: pickupLng,
       );
-      for (final d in drivers) {
-        expect(d.distanceKm, greaterThan(0));
-        expect(d.distanceKm, lessThanOrEqualTo(9.5));
-      }
+      final ranked = service.rankDrivers(availableDrivers: [driver], pickupLat: pickupLat, pickupLng: pickupLng);
+      expect(ranked.single.name, 'Ah Kow');
+      expect(ranked.single.rating, 4.8);
     });
   });
 }

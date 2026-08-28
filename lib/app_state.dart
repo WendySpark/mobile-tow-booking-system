@@ -37,6 +37,13 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setPreferredWorkshop(String workshopId) async {
+    if (currentUser == null) return;
+    await firestoreService.setPreferredWorkshop(currentUser!.uid, workshopId);
+    currentUser = currentUser!.copyWith(preferredWorkshopId: workshopId);
+    notifyListeners();
+  }
+
   Future<void> logout() async {
     await authService.logout();
     currentUser = null;

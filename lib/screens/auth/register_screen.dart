@@ -74,7 +74,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   segments: const [
                     ButtonSegment(value: UserRole.user, label: Text('User'), icon: Icon(Icons.person)),
                     ButtonSegment(
-                        value: UserRole.agent, label: Text('Insurance Agent'), icon: Icon(Icons.badge)),
+                        value: UserRole.agent, label: Text('Agent'), icon: Icon(Icons.badge)),
+                    ButtonSegment(
+                        value: UserRole.workshop, label: Text('Workshop'), icon: Icon(Icons.build)),
                   ],
                   selected: {_role},
                   onSelectionChanged: (s) => setState(() => _role = s.first),
