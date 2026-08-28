@@ -33,4 +33,13 @@ class Vehicle {
       };
 
   String get displayName => '$make $model ($plateNumber)';
+
+  // Firestore StreamBuilders emit a fresh Vehicle instance on every
+  // snapshot, so widgets that match by value (e.g. DropdownButtonFormField)
+  // need id-based equality rather than the default identity comparison.
+  @override
+  bool operator ==(Object other) => other is Vehicle && other.id == id;
+
+  @override
+  int get hashCode => id.hashCode;
 }

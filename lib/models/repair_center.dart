@@ -27,4 +27,12 @@ class RepairCenter {
         'latitude': latitude,
         'longitude': longitude,
       };
+
+  // See Vehicle.== — same StreamBuilder re-identity issue applies here
+  // since this is also used as a DropdownButtonFormField value.
+  @override
+  bool operator ==(Object other) => other is RepairCenter && other.id == id;
+
+  @override
+  int get hashCode => id.hashCode;
 }
