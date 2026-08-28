@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../app_state.dart';
 import '../models/user_role.dart';
+import 'admin/settings_screen.dart';
 
 /// Shared "Profile Management" screen — same for User and Insurance Agent.
 class ProfileScreen extends StatelessWidget {
@@ -24,6 +25,16 @@ class ProfileScreen extends StatelessWidget {
           _ProfileRow(label: 'Email', value: user.email),
           _ProfileRow(label: 'Phone', value: user.phone),
           _ProfileRow(label: 'Role', value: user.role.value),
+          if (user.role == UserRole.admin) ...[
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              ),
+              icon: const Icon(Icons.settings),
+              label: const Text('Tow Rate Settings'),
+            ),
+          ],
           const SizedBox(height: 24),
           OutlinedButton.icon(
             onPressed: () => context.read<AppState>().logout(),

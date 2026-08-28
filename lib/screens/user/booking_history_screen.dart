@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../app_state.dart';
 import '../../models/booking.dart';
 import '../../models/booking_status.dart';
+import '../invoice_screen.dart';
 
 class BookingHistoryScreen extends StatelessWidget {
   const BookingHistoryScreen({super.key});
@@ -29,8 +30,13 @@ class BookingHistoryScreen extends StatelessWidget {
               return ListTile(
                 leading: _statusIcon(b.status),
                 title: Text(DateFormat.yMMMd().add_jm().format(b.createdAt)),
-                subtitle: Text(b.status.label),
+                subtitle: Text(
+                  b.requiresPayment ? '${b.status.label} · ${b.paid ? "Paid" : "Unpaid"}' : b.status.label,
+                ),
                 trailing: Text(b.charge == 0 ? 'FREE' : 'RM ${b.charge.toStringAsFixed(2)}'),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => InvoiceScreen(booking: b)),
+                ),
               );
             },
           );

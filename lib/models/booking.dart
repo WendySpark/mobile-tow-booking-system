@@ -16,6 +16,15 @@ class Booking {
   final DateTime createdAt;
   final double truckStartLat;
   final double truckStartLng;
+  final String? driverName;
+  final double? driverEtaMinutes;
+
+  /// A booking with charge == 0 is considered paid automatically (nothing
+  /// owed). Bookings with charge > 0 start unpaid until the user settles
+  /// them from the Payments tab.
+  final bool paid;
+  final DateTime? paidAt;
+  final String? paymentMethod;
 
   const Booking({
     required this.id,
@@ -33,7 +42,15 @@ class Booking {
     required this.createdAt,
     required this.truckStartLat,
     required this.truckStartLng,
+    this.driverName,
+    this.driverEtaMinutes,
+    this.paid = false,
+    this.paidAt,
+    this.paymentMethod,
   });
+
+  bool get requiresPayment => charge > 0;
+  bool get isOutstanding => requiresPayment && !paid;
 
   factory Booking.fromMap(String id, Map<String, dynamic> map) => Booking(
         id: id,
@@ -51,6 +68,11 @@ class Booking {
         createdAt: DateTime.parse(map['createdAt'] as String),
         truckStartLat: (map['truckStartLat'] as num?)?.toDouble() ?? 0,
         truckStartLng: (map['truckStartLng'] as num?)?.toDouble() ?? 0,
+        driverName: map['driverName'] as String?,
+        driverEtaMinutes: (map['driverEtaMinutes'] as num?)?.toDouble(),
+        paid: map['paid'] as bool? ?? ((map['charge'] as num?)?.toDouble() ?? 0) == 0,
+        paidAt: map['paidAt'] != null ? DateTime.parse(map['paidAt'] as String) : null,
+        paymentMethod: map['paymentMethod'] as String?,
       );
 
   Map<String, dynamic> toMap() => {
@@ -68,9 +90,21 @@ class Booking {
         'createdAt': createdAt.toIso8601String(),
         'truckStartLat': truckStartLat,
         'truckStartLng': truckStartLng,
+        'driverName': driverName,
+        'driverEtaMinutes': driverEtaMinutes,
+        'paid': paid,
+        'paidAt': paidAt?.toIso8601String(),
+        'paymentMethod': paymentMethod,
       };
 
-  Booking copyWith({String? id, BookingStatus? status}) => Booking(
+  Booking copyWith({
+    String? id,
+    BookingStatus? status,
+    bool? paid,
+    DateTime? paidAt,
+    String? paymentMethod,
+  }) =>
+      Booking(
         id: id ?? this.id,
         userUid: userUid,
         vehicleId: vehicleId,
@@ -86,5 +120,10 @@ class Booking {
         createdAt: createdAt,
         truckStartLat: truckStartLat,
         truckStartLng: truckStartLng,
+        driverName: driverName,
+        driverEtaMinutes: driverEtaMinutes,
+        paid: paid ?? this.paid,
+        paidAt: paidAt ?? this.paidAt,
+        paymentMethod: paymentMethod ?? this.paymentMethod,
       );
 }

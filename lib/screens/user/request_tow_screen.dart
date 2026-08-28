@@ -9,8 +9,10 @@ import '../../models/booking.dart';
 import '../../models/booking_status.dart';
 import '../../models/insurance_policy.dart';
 import '../../models/repair_center.dart';
+import '../../models/tow_driver.dart';
 import '../../models/tow_quote.dart';
 import '../../models/vehicle.dart';
+import '../../services/driver_dispatch_service.dart';
 import '../../services/tow_calculation_service.dart';
 import 'booking_tracking_screen.dart';
 
@@ -27,6 +29,7 @@ class RequestTowScreen extends StatefulWidget {
 
 class _RequestTowScreenState extends State<RequestTowScreen> {
   static const _calculationService = TowCalculationService();
+  static const _dispatchService = DriverDispatchService();
   static const _defaultCenter = LatLng(3.1390, 101.6869); // Kuala Lumpur
 
   final _mapController = MapController();
@@ -35,8 +38,18 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
   RepairCenter? _selectedCenter;
   InsurancePolicy? _resolvedPolicy;
   TowQuote? _quote;
+  List<TowDriver> _drivers = [];
+  TowDriver? _selectedDriver;
   bool _isBooking = false;
   bool _isLocating = false;
+
+  void _refreshDrivers() {
+    final drivers = _dispatchService.findNearbyDrivers(pickupLat: _pickup.latitude, pickupLng: _pickup.longitude);
+    setState(() {
+      _drivers = drivers;
+      _selectedDriver = drivers.first;
+    });
+  }
 
   Future<void> _useCurrentLocation(AppState appState) async {
     setState(() => _isLocating = true);
@@ -71,7 +84,11 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
 
   Future<void> _recomputeQuote(AppState appState) async {
     if (_selectedVehicle == null || _selectedCenter == null) {
-      setState(() => _quote = null);
+      setState(() {
+        _quote = null;
+        _drivers = [];
+        _selectedDriver = null;
+      });
       return;
     }
 
@@ -95,15 +112,16 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
       _resolvedPolicy = policy;
       _quote = quote;
     });
+    _refreshDrivers();
   }
 
   Future<void> _confirmBooking(AppState appState) async {
-    if (_quote == null || _selectedVehicle == null || _selectedCenter == null) return;
+    if (_quote == null || _selectedVehicle == null || _selectedCenter == null || _selectedDriver == null) {
+      return;
+    }
     setState(() => _isBooking = true);
 
-    // Randomize a plausible truck starting point ~3-6km from the pickup,
-    // purely for the tracking animation to have somewhere to start from.
-    final truckStart = LatLng(_pickup.latitude + 0.03, _pickup.longitude + 0.03);
+    final driver = _selectedDriver!;
 
     final booking = Booking(
       id: '',
@@ -119,8 +137,11 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
       charge: _quote!.charge,
       status: BookingStatus.confirmed,
       createdAt: DateTime.now(),
-      truckStartLat: truckStart.latitude,
-      truckStartLng: truckStart.longitude,
+      truckStartLat: driver.startLat,
+      truckStartLng: driver.startLng,
+      driverName: driver.name,
+      driverEtaMinutes: driver.etaMinutes,
+      paid: _quote!.charge == 0,
     );
 
     final id = await appState.firestoreService.createBooking(booking);
@@ -238,9 +259,22 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
                   ),
                   const SizedBox(height: 16),
                   if (_quote != null) _QuoteCard(quote: _quote!),
+                  if (_drivers.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Text('Choose a Driver', style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    for (final driver in _drivers)
+                      _DriverTile(
+                        driver: driver,
+                        selected: driver.id == _selectedDriver?.id,
+                        onTap: () => setState(() => _selectedDriver = driver),
+                      ),
+                  ],
                   const SizedBox(height: 16),
                   FilledButton(
-                    onPressed: (_quote == null || _isBooking) ? null : () => _confirmBooking(appState),
+                    onPressed: (_quote == null || _selectedDriver == null || _isBooking)
+                        ? null
+                        : () => _confirmBooking(appState),
                     child: _isBooking
                         ? const SizedBox(
                             height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
@@ -283,6 +317,35 @@ class _QuoteCard extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DriverTile extends StatelessWidget {
+  const _DriverTile({required this.driver, required this.selected, required this.onTap});
+
+  final TowDriver driver;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: selected ? Colors.indigo.shade50 : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: selected ? Colors.indigo : Colors.transparent, width: 1.5),
+      ),
+      child: RadioListTile<String>(
+        value: driver.id,
+        groupValue: selected ? driver.id : null,
+        onChanged: (_) => onTap(),
+        title: Text(driver.name),
+        subtitle: Text(
+          '${driver.distanceKm.toStringAsFixed(1)} km away · ETA ${driver.etaMinutes.round()} min · '
+          '★ ${driver.rating.toStringAsFixed(1)}',
         ),
       ),
     );

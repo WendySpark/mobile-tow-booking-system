@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../app_state.dart';
 import '../../models/booking.dart';
 import '../../models/booking_status.dart';
+import '../invoice_screen.dart';
 
 class ManageBookingsScreen extends StatelessWidget {
   const ManageBookingsScreen({super.key});
@@ -29,14 +30,48 @@ class ManageBookingsScreen extends StatelessWidget {
               return ListTile(
                 leading: _statusIcon(b.status),
                 title: Text(DateFormat.yMMMd().add_jm().format(b.createdAt)),
-                subtitle: Text('${b.status.label} · ${b.distanceKm.toStringAsFixed(1)} km'),
-                trailing: Text(b.charge == 0 ? 'FREE' : 'RM ${b.charge.toStringAsFixed(2)}'),
+                subtitle: Text(
+                  '${b.status.label} · ${b.distanceKm.toStringAsFixed(1)} km'
+                  '${b.requiresPayment ? (b.paid ? ' · Paid' : ' · Unpaid') : ''}',
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(b.charge == 0 ? 'FREE' : 'RM ${b.charge.toStringAsFixed(2)}'),
+                    if (b.isOutstanding)
+                      IconButton(
+                        icon: const Icon(Icons.point_of_sale, color: Colors.orange),
+                        tooltip: 'Record cash payment',
+                        onPressed: () => _confirmCashPayment(context, appState, b),
+                      ),
+                  ],
+                ),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => InvoiceScreen(booking: b)),
+                ),
               );
             },
           );
         },
       ),
     );
+  }
+
+  Future<void> _confirmCashPayment(BuildContext context, AppState appState, Booking booking) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Record Cash Payment'),
+        content: Text('Mark RM ${booking.charge.toStringAsFixed(2)} as paid in cash?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Confirm')),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await appState.firestoreService.markBookingPaid(booking.id, method: 'Cash (Admin)');
+    }
   }
 
   Widget _statusIcon(BookingStatus status) => switch (status) {

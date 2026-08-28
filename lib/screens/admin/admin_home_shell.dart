@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../profile_screen.dart';
+import 'analytics_screen.dart';
 import 'manage_bookings_screen.dart';
 import 'manage_repair_centers_screen.dart';
 import 'manage_users_screen.dart';
-import 'settings_screen.dart';
 
 class AdminHomeShell extends StatefulWidget {
   const AdminHomeShell({super.key});
@@ -20,7 +20,7 @@ class _AdminHomeShellState extends State<AdminHomeShell> {
     ManageBookingsScreen(),
     ManageUsersScreen(),
     ManageRepairCentersScreen(),
-    SettingsScreen(),
+    AnalyticsScreen(),
     ProfileScreen(),
   ];
 
@@ -35,7 +35,7 @@ class _AdminHomeShellState extends State<AdminHomeShell> {
           NavigationDestination(icon: Icon(Icons.local_shipping), label: 'Bookings'),
           NavigationDestination(icon: Icon(Icons.people), label: 'Users'),
           NavigationDestination(icon: Icon(Icons.build), label: 'Centers'),
-          NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
+          NavigationDestination(icon: Icon(Icons.bar_chart), label: 'Analytics'),
           NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),

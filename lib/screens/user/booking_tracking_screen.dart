@@ -7,6 +7,7 @@ import '../../app_state.dart';
 import '../../models/booking.dart';
 import '../../models/booking_status.dart';
 import '../../services/tow_tracking_simulator.dart';
+import '../user/payments_screen.dart';
 import '../user/user_home_shell.dart';
 
 /// Covers "real-time tracking of tow vehicle arrival" — see
@@ -108,6 +109,10 @@ class _BookingTrackingScreenState extends State<BookingTrackingScreen> {
                       Text(status.label, style: Theme.of(context).textTheme.titleMedium),
                     ],
                   ),
+                  if (widget.booking.driverName != null) ...[
+                    const SizedBox(height: 4),
+                    Text('Driver: ${widget.booking.driverName}', textAlign: TextAlign.center),
+                  ],
                   const SizedBox(height: 12),
                   Text(
                     'Charge: ${widget.booking.charge == 0 ? 'FREE' : 'RM ${widget.booking.charge.toStringAsFixed(2)}'}',
@@ -116,8 +121,36 @@ class _BookingTrackingScreenState extends State<BookingTrackingScreen> {
                   const SizedBox(height: 16),
                   if (status == BookingStatus.arrived)
                     FilledButton(
-                      onPressed: () {
+                      onPressed: () async {
                         _simulator.markCompleted();
+                        if (widget.booking.requiresPayment && !widget.booking.paid) {
+                          await showDialog(
+                            context: context,
+                            builder: (dialogContext) => AlertDialog(
+                              title: const Text('Payment Due'),
+                              content: Text(
+                                'This tow costs RM ${widget.booking.charge.toStringAsFixed(2)}. '
+                                'Settle it from the Payments tab before requesting another tow.',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(dialogContext),
+                                  child: const Text('Later'),
+                                ),
+                                FilledButton(
+                                  onPressed: () {
+                                    Navigator.pop(dialogContext);
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(builder: (_) => const PaymentsScreen()),
+                                    );
+                                  },
+                                  child: const Text('Pay Now'),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        if (!context.mounted) return;
                         Navigator.of(context).pushAndRemoveUntil(
                           MaterialPageRoute(builder: (_) => const UserHomeShell()),
                           (route) => false,

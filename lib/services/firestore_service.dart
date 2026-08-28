@@ -80,6 +80,11 @@ class FirestoreService {
     return doc.id;
   }
 
+  Future<RepairCenter?> getRepairCenter(String id) async {
+    final doc = await _db.collection('repairCenters').doc(id).get();
+    return doc.exists ? RepairCenter.fromMap(doc.id, doc.data()!) : null;
+  }
+
   // ---- Bookings -----------------------------------------------------------
   Future<String> createBooking(Booking booking) async {
     final doc = await _db.collection('bookings').add(booking.toMap());
@@ -89,12 +94,28 @@ class FirestoreService {
   Future<void> updateBookingStatus(String id, BookingStatus status) =>
       _db.collection('bookings').doc(id).update({'status': status.value});
 
+  /// Marks a booking's outstanding charge as settled. Called from the
+  /// Payments tab (or by Admin, for offline/cash settlements).
+  Future<void> markBookingPaid(String id, {required String method}) =>
+      _db.collection('bookings').doc(id).update({
+        'paid': true,
+        'paidAt': DateTime.now().toIso8601String(),
+        'paymentMethod': method,
+      });
+
   Stream<List<Booking>> streamBookingsForUser(String userUid) => _db
       .collection('bookings')
       .where('userUid', isEqualTo: userUid)
       .orderBy('createdAt', descending: true)
       .snapshots()
       .map((s) => s.docs.map((d) => Booking.fromMap(d.id, d.data())).toList());
+
+  /// One-off fetch (not a stream) used to gate "Request a Tow" on
+  /// outstanding payments without keeping a second listener alive.
+  Future<List<Booking>> fetchBookingsForUser(String userUid) async {
+    final snap = await _db.collection('bookings').where('userUid', isEqualTo: userUid).get();
+    return snap.docs.map((d) => Booking.fromMap(d.id, d.data())).toList();
+  }
 
   Stream<List<Booking>> streamAllBookings() => _db
       .collection('bookings')
