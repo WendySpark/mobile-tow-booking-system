@@ -1,15 +1,13 @@
 # Mobile Tow Booking System
 
 A Flutter + Firebase prototype built for *"Mobile Tow
-Booking System."* Covers the brief's three modules (**Admin, User, Insurance
-Agent**) as one app that branches by role after login, and all of its key
+Booking System."* Covers four modules (**Admin, User, Insurance
+Agent, Workshop**) as one app that branches by role after login, and all of its key
 processes: registration & authentication for Users and Insurance Agents, a
 vehicle insurance information database, a free-towing eligibility check, a
 distance-based tow charge calculation, booking confirmation, and real-time
-tracking of the tow vehicle's arrival. A fourth role, **Workshop**, was added
-beyond the brief (see below).
+tracking of the tow vehicle's arrival.
 
-## Beyond the brief
 
 Five additions that go past the minimum key processes:
 
