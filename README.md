@@ -1,7 +1,6 @@
 # Mobile Tow Booking System
 
-A Flutter + Firebase prototype built for **CSE6214 Software Engineering
-Fundamentals** (Tutorial T14L, Dr Patrick) — assigned title *"Mobile Tow
+A Flutter + Firebase prototype built for *"Mobile Tow
 Booking System."* Covers the brief's three modules (**Admin, User, Insurance
 Agent**) as one app that branches by role after login, and all of its key
 processes: registration & authentication for Users and Insurance Agents, a
