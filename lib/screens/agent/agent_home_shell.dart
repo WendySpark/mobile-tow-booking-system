@@ -13,10 +13,7 @@ class AgentHomeShell extends StatefulWidget {
 class _AgentHomeShellState extends State<AgentHomeShell> {
   int _index = 0;
 
-  static const _tabs = [
-    ManagePoliciesScreen(),
-    ProfileScreen(),
-  ];
+  static const _tabs = [ManagePoliciesScreen(), ProfileScreen()];
 
   @override
   Widget build(BuildContext context) {

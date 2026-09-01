@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 
 import '../../app_state.dart';
 import '../../models/repair_center.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/empty_state.dart';
+import '../../widgets/staggered_list_view.dart';
 
 class ManageRepairCentersScreen extends StatelessWidget {
   const ManageRepairCentersScreen({super.key});
@@ -16,17 +19,38 @@ class ManageRepairCentersScreen extends StatelessWidget {
       body: StreamBuilder<List<RepairCenter>>(
         stream: appState.firestoreService.streamRepairCenters(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          if (!snapshot.hasData)
+            return const Center(child: CircularProgressIndicator());
           final centers = snapshot.data!;
-          if (centers.isEmpty) return const Center(child: Text('No repair centers yet. Tap + to add.'));
-          return ListView.builder(
+          if (centers.isEmpty) {
+            return const EmptyState(
+              icon: Icons.build_circle_outlined,
+              title: 'No repair centers yet',
+              subtitle: 'Tap the + button to add one.',
+            );
+          }
+          return StaggeredListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
             itemCount: centers.length,
             itemBuilder: (context, i) {
               final c = centers[i];
-              return ListTile(
-                leading: const Icon(Icons.build_circle, color: Colors.indigo),
-                title: Text(c.name),
-                subtitle: Text(c.address),
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Card(
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    leading: const CircleAvatar(
+                      backgroundColor: AppColors.primarySurface,
+                      foregroundColor: AppColors.primary,
+                      child: Icon(Icons.build_circle, size: 20),
+                    ),
+                    title: Text(c.name),
+                    subtitle: Text(c.address),
+                  ),
+                ),
               );
             },
           );
@@ -59,40 +83,49 @@ class ManageRepairCentersScreen extends StatelessWidget {
               TextFormField(
                 controller: nameController,
                 decoration: const InputDecoration(labelText: 'Name'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
               TextFormField(
                 controller: addressController,
                 decoration: const InputDecoration(labelText: 'Address'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
               TextFormField(
                 controller: latController,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(labelText: 'Latitude'),
-                validator: (v) => double.tryParse(v ?? '') == null ? 'Enter a number' : null,
+                validator: (v) =>
+                    double.tryParse(v ?? '') == null ? 'Enter a number' : null,
               ),
               TextFormField(
                 controller: lngController,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(labelText: 'Longitude'),
-                validator: (v) => double.tryParse(v ?? '') == null ? 'Enter a number' : null,
+                validator: (v) =>
+                    double.tryParse(v ?? '') == null ? 'Enter a number' : null,
               ),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
-              await appState.firestoreService.addRepairCenter(RepairCenter(
-                id: '',
-                name: nameController.text.trim(),
-                address: addressController.text.trim(),
-                latitude: double.parse(latController.text),
-                longitude: double.parse(lngController.text),
-              ));
+              await appState.firestoreService.addRepairCenter(
+                RepairCenter(
+                  id: '',
+                  name: nameController.text.trim(),
+                  address: addressController.text.trim(),
+                  latitude: double.parse(latController.text),
+                  longitude: double.parse(lngController.text),
+                ),
+              );
               if (dialogContext.mounted) Navigator.pop(dialogContext);
             },
             child: const Text('Add'),

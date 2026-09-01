@@ -15,6 +15,7 @@ import '../../models/tow_quote.dart';
 import '../../models/vehicle.dart';
 import '../../services/driver_dispatch_service.dart';
 import '../../services/tow_calculation_service.dart';
+import '../../theme/app_theme.dart';
 import '../../utils/distance_utils.dart';
 import 'booking_tracking_screen.dart';
 
@@ -52,8 +53,18 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
   List<RepairCenter> _sortedByDistance(List<RepairCenter> centers) {
     final sorted = [...centers];
     sorted.sort((a, b) {
-      final da = haversineDistanceKm(lat1: _pickup.latitude, lng1: _pickup.longitude, lat2: a.latitude, lng2: a.longitude);
-      final db = haversineDistanceKm(lat1: _pickup.latitude, lng1: _pickup.longitude, lat2: b.latitude, lng2: b.longitude);
+      final da = haversineDistanceKm(
+        lat1: _pickup.latitude,
+        lng1: _pickup.longitude,
+        lat2: a.latitude,
+        lng2: a.longitude,
+      );
+      final db = haversineDistanceKm(
+        lat1: _pickup.latitude,
+        lng1: _pickup.longitude,
+        lat2: b.latitude,
+        lng2: b.longitude,
+      );
       return da.compareTo(db);
     });
     return sorted;
@@ -63,7 +74,9 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
     if (_hasAutoSelectedCenter || sorted.isEmpty) return;
     _hasAutoSelectedCenter = true;
     final preferredId = appState.currentUser!.preferredWorkshopId;
-    final preferred = preferredId == null ? null : sorted.where((c) => c.id == preferredId).firstOrNull;
+    final preferred = preferredId == null
+        ? null
+        : sorted.where((c) => c.id == preferredId).firstOrNull;
     final chosen = preferred ?? sorted.first;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -105,17 +118,20 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
-      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
         if (mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('Location permission denied.')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Location permission denied.')),
+          );
         }
         return;
       }
       if (!await Geolocator.isLocationServiceEnabled()) {
         if (mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('Location services are disabled.')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Location services are disabled.')),
+          );
         }
         return;
       }
@@ -137,7 +153,9 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
 
     InsurancePolicy? policy;
     if (_selectedVehicle!.policyId != null) {
-      policy = await appState.firestoreService.getPolicy(_selectedVehicle!.policyId!);
+      policy = await appState.firestoreService.getPolicy(
+        _selectedVehicle!.policyId!,
+      );
     }
     final defaultRate = await appState.firestoreService.getDefaultRatePerKm();
 
@@ -159,7 +177,10 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
   }
 
   Future<void> _confirmBooking(AppState appState) async {
-    if (_quote == null || _selectedVehicle == null || _selectedCenter == null || _selectedDriver == null) {
+    if (_quote == null ||
+        _selectedVehicle == null ||
+        _selectedCenter == null ||
+        _selectedDriver == null) {
       return;
     }
     setState(() => _isBooking = true);
@@ -189,12 +210,18 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
     );
 
     final id = await appState.firestoreService.createBooking(booking);
-    await appState.firestoreService.setDriverStatus(driver.id, DriverStatus.busy);
+    await appState.firestoreService.setDriverStatus(
+      driver.id,
+      DriverStatus.busy,
+    );
 
     if (!mounted) return;
     setState(() => _isBooking = false);
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => BookingTrackingScreen(booking: booking.copyWith(id: id))),
+      MaterialPageRoute(
+        builder: (_) =>
+            BookingTrackingScreen(booking: booking.copyWith(id: id)),
+      ),
     );
   }
 
@@ -222,24 +249,39 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.towbooking.mobile_tow_booking_system',
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName:
+                          'com.towbooking.mobile_tow_booking_system',
                     ),
-                    MarkerLayer(markers: [
-                      Marker(
-                        point: _pickup,
-                        width: 40,
-                        height: 40,
-                        child: const Icon(Icons.location_pin, color: Colors.red, size: 40),
-                      ),
-                      if (_selectedCenter != null)
+                    MarkerLayer(
+                      markers: [
                         Marker(
-                          point: LatLng(_selectedCenter!.latitude, _selectedCenter!.longitude),
+                          point: _pickup,
                           width: 40,
                           height: 40,
-                          child: const Icon(Icons.build, color: Colors.indigo, size: 32),
+                          child: const Icon(
+                            Icons.location_pin,
+                            color: Colors.red,
+                            size: 40,
+                          ),
                         ),
-                    ]),
+                        if (_selectedCenter != null)
+                          Marker(
+                            point: LatLng(
+                              _selectedCenter!.latitude,
+                              _selectedCenter!.longitude,
+                            ),
+                            width: 40,
+                            height: 40,
+                            child: const Icon(
+                              Icons.build,
+                              color: Colors.indigo,
+                              size: 32,
+                            ),
+                          ),
+                      ],
+                    ),
                   ],
                 ),
                 Positioned(
@@ -247,10 +289,15 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
                   bottom: 12,
                   child: FloatingActionButton.small(
                     heroTag: 'locateMe',
-                    onPressed: _isLocating ? null : () => _useCurrentLocation(appState),
+                    onPressed: _isLocating
+                        ? null
+                        : () => _useCurrentLocation(appState),
                     child: _isLocating
                         ? const SizedBox(
-                            height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
                         : const Icon(Icons.my_location),
                   ),
                 ),
@@ -259,7 +306,10 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
           ),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: Text('Tap the map to set your pickup location.', style: TextStyle(fontSize: 12)),
+            child: Text(
+              'Tap the map to set your pickup location.',
+              style: TextStyle(fontSize: 12),
+            ),
           ),
           Expanded(
             flex: 5,
@@ -269,14 +319,21 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   StreamBuilder<List<Vehicle>>(
-                    stream: appState.firestoreService.streamVehiclesForOwner(appState.currentUser!.uid),
+                    stream: appState.firestoreService.streamVehiclesForOwner(
+                      appState.currentUser!.uid,
+                    ),
                     builder: (context, snapshot) {
                       final vehicles = snapshot.data ?? [];
                       return DropdownButtonFormField<Vehicle>(
                         initialValue: _selectedVehicle,
                         decoration: const InputDecoration(labelText: 'Vehicle'),
                         items: vehicles
-                            .map((v) => DropdownMenuItem(value: v, child: Text(v.displayName)))
+                            .map(
+                              (v) => DropdownMenuItem(
+                                value: v,
+                                child: Text(v.displayName),
+                              ),
+                            )
                             .toList(),
                         onChanged: (v) {
                           setState(() => _selectedVehicle = v);
@@ -286,7 +343,10 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  Text('Choose a Workshop', style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    'Choose a Workshop',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   const SizedBox(height: 4),
                   const Text(
                     'Sorted by distance from your pickup pin. Tap ★ to set your preferred workshop.',
@@ -300,7 +360,10 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
                       final sorted = _sortedByDistance(centers);
                       _autoSelectCenterIfNeeded(appState, sorted);
                       if (sorted.isEmpty) {
-                        return const Text('No workshops available yet.', style: TextStyle(color: Colors.grey));
+                        return const Text(
+                          'No workshops available yet.',
+                          style: TextStyle(color: AppColors.inkMuted),
+                        );
                       }
                       return Column(
                         children: [
@@ -313,13 +376,16 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
                                 lat2: center.latitude,
                                 lng2: center.longitude,
                               ),
-                              isPreferred: appState.currentUser!.preferredWorkshopId == center.id,
+                              isPreferred:
+                                  appState.currentUser!.preferredWorkshopId ==
+                                  center.id,
                               selected: _selectedCenter?.id == center.id,
                               onTap: () {
                                 setState(() => _selectedCenter = center);
                                 _recomputeQuote(appState);
                               },
-                              onStarTap: () => appState.setPreferredWorkshop(center.id),
+                              onStarTap: () =>
+                                  appState.setPreferredWorkshop(center.id),
                             ),
                         ],
                       );
@@ -333,16 +399,39 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
                       child: Center(child: CircularProgressIndicator()),
                     )
                   else if (_selectedCenter != null && _drivers.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Text(
-                        'This workshop has no available drivers right now — try another workshop.',
-                        style: TextStyle(color: Colors.red),
+                    Container(
+                      margin: const EdgeInsets.only(top: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.dangerSurface,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            color: AppColors.danger,
+                            size: 18,
+                          ),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'This workshop has no available drivers right now — try another workshop.',
+                              style: TextStyle(
+                                color: AppColors.danger,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     )
                   else if (_drivers.isNotEmpty) ...[
                     const SizedBox(height: 16),
-                    Text('Choose a Driver', style: Theme.of(context).textTheme.titleMedium),
+                    Text(
+                      'Choose a Driver',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                     const SizedBox(height: 8),
                     for (final driver in _drivers)
                       _DriverTile(
@@ -353,12 +442,18 @@ class _RequestTowScreenState extends State<RequestTowScreen> {
                   ],
                   const SizedBox(height: 16),
                   FilledButton(
-                    onPressed: (_quote == null || _selectedDriver == null || _isBooking)
+                    onPressed:
+                        (_quote == null ||
+                            _selectedDriver == null ||
+                            _isBooking)
                         ? null
                         : () => _confirmBooking(appState),
                     child: _isBooking
                         ? const SizedBox(
-                            height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
                         : const Text('Confirm Booking'),
                   ),
                 ],
@@ -394,20 +489,36 @@ class _WorkshopTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: selected ? Colors.indigo.shade50 : null,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: selected ? Colors.indigo : Colors.transparent, width: 1.5),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: selected ? AppColors.primarySurface : AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: selected ? AppColors.primary : AppColors.border,
+          width: 1.4,
+        ),
       ),
       child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         onTap: onTap,
-        leading: Icon(Icons.build_circle, color: selected ? Colors.indigo : Colors.grey),
+        leading: Icon(
+          Icons.build_circle,
+          color: selected ? AppColors.primary : AppColors.inkMuted,
+        ),
         title: Text(center.name),
-        subtitle: Text('${distanceKm.toStringAsFixed(1)} km away · ${center.address}'),
+        subtitle: Text(
+          '${distanceKm.toStringAsFixed(1)} km away · ${center.address}',
+        ),
         trailing: IconButton(
-          icon: Icon(isPreferred ? Icons.star : Icons.star_border, color: Colors.amber),
-          tooltip: isPreferred ? 'Your preferred workshop' : 'Set as preferred workshop',
+          icon: Icon(
+            isPreferred ? Icons.star : Icons.star_border,
+            color: Colors.amber,
+          ),
+          tooltip: isPreferred
+              ? 'Your preferred workshop'
+              : 'Set as preferred workshop',
           onPressed: onStarTap,
         ),
       ),
@@ -422,24 +533,42 @@ class _QuoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: quote.isFullyFree ? Colors.green.shade50 : Colors.orange.shade50,
-      child: Padding(
+    final color = quote.isFullyFree ? AppColors.success : AppColors.warning;
+    return TweenAnimationBuilder<double>(
+      key: ValueKey(quote.charge),
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+      builder: (context, t, child) => Opacity(opacity: t, child: child),
+      child: Container(
         padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.25)),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Distance: ${quote.totalDistanceKm.toStringAsFixed(1)} km'),
             if (!quote.eligibleForFreeTow)
-              Text(quote.ineligibilityReason!, style: const TextStyle(color: Colors.red)),
-            Text('Free distance: ${quote.freeDistanceKm.toStringAsFixed(1)} km'),
-            Text('Chargeable distance: ${quote.chargeableDistanceKm.toStringAsFixed(1)} km'),
+              Text(
+                quote.ineligibilityReason!,
+                style: const TextStyle(color: AppColors.danger),
+              ),
+            Text(
+              'Free distance: ${quote.freeDistanceKm.toStringAsFixed(1)} km',
+            ),
+            Text(
+              'Chargeable distance: ${quote.chargeableDistanceKm.toStringAsFixed(1)} km',
+            ),
             const SizedBox(height: 8),
             Text(
               quote.isFullyFree
                   ? 'Total charge: FREE'
                   : 'Total charge: RM ${quote.charge.toStringAsFixed(2)}',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(color: color),
             ),
           ],
         ),
@@ -449,7 +578,11 @@ class _QuoteCard extends StatelessWidget {
 }
 
 class _DriverTile extends StatelessWidget {
-  const _DriverTile({required this.driver, required this.selected, required this.onTap});
+  const _DriverTile({
+    required this.driver,
+    required this.selected,
+    required this.onTap,
+  });
 
   final TowDriver driver;
   final bool selected;
@@ -457,16 +590,23 @@ class _DriverTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: selected ? Colors.indigo.shade50 : null,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: selected ? Colors.indigo : Colors.transparent, width: 1.5),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: selected ? AppColors.primarySurface : AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: selected ? AppColors.primary : AppColors.border,
+          width: 1.4,
+        ),
       ),
       child: RadioListTile<String>(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         value: driver.id,
         groupValue: selected ? driver.id : null,
         onChanged: (_) => onTap(),
+        activeColor: AppColors.primary,
         title: Text(driver.name),
         subtitle: Text(
           '${driver.distanceKm.toStringAsFixed(1)} km away · ETA ${driver.etaMinutes.round()} min · '

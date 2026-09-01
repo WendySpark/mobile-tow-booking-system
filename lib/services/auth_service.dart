@@ -10,8 +10,8 @@ import '../models/user_role.dart';
 /// self-registerable.
 class AuthService {
   AuthService({FirebaseAuth? auth, FirebaseFirestore? firestore})
-      : _auth = auth ?? FirebaseAuth.instance,
-        _firestore = firestore ?? FirebaseFirestore.instance;
+    : _auth = auth ?? FirebaseAuth.instance,
+      _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
@@ -19,7 +19,8 @@ class AuthService {
   Stream<User?> get authStateChanges => _auth.authStateChanges();
   User? get currentFirebaseUser => _auth.currentUser;
 
-  CollectionReference<Map<String, dynamic>> get _usersCol => _firestore.collection('users');
+  CollectionReference<Map<String, dynamic>> get _usersCol =>
+      _firestore.collection('users');
 
   Future<AppUser> register({
     required String name,
@@ -28,15 +29,30 @@ class AuthService {
     required String phone,
     required UserRole role,
   }) async {
-    final credential = await _auth.createUserWithEmailAndPassword(email: email, password: password);
+    final credential = await _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
     final uid = credential.user!.uid;
-    final user = AppUser(uid: uid, name: name, email: email, phone: phone, role: role);
+    final user = AppUser(
+      uid: uid,
+      name: name,
+      email: email,
+      phone: phone,
+      role: role,
+    );
     await _usersCol.doc(uid).set(user.toMap());
     return user;
   }
 
-  Future<AppUser> login({required String email, required String password}) async {
-    final credential = await _auth.signInWithEmailAndPassword(email: email, password: password);
+  Future<AppUser> login({
+    required String email,
+    required String password,
+  }) async {
+    final credential = await _auth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
     return fetchProfile(credential.user!.uid);
   }
 

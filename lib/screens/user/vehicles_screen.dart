@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 
 import '../../app_state.dart';
 import '../../models/vehicle.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/empty_state.dart';
+import '../../widgets/staggered_list_view.dart';
 
 class VehiclesScreen extends StatelessWidget {
   const VehiclesScreen({super.key});
@@ -17,25 +20,55 @@ class VehiclesScreen extends StatelessWidget {
       body: StreamBuilder<List<Vehicle>>(
         stream: appState.firestoreService.streamVehiclesForOwner(uid),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          if (!snapshot.hasData)
+            return const Center(child: CircularProgressIndicator());
           final vehicles = snapshot.data!;
           if (vehicles.isEmpty) {
-            return const Center(child: Text('No vehicles yet. Tap + to add one.'));
+            return EmptyState(
+              icon: Icons.directions_car_outlined,
+              title: 'No vehicles yet',
+              subtitle: 'Tap the + button to add your first vehicle.',
+            );
           }
-          return ListView.builder(
+          return StaggeredListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
             itemCount: vehicles.length,
             itemBuilder: (context, i) {
               final v = vehicles[i];
-              return ListTile(
-                leading: const Icon(Icons.directions_car),
-                title: Text(v.displayName),
-                subtitle: Text(v.policyId == null ? 'No insurance policy linked' : 'Policy linked'),
-                trailing: v.policyId == null
-                    ? TextButton(
-                        onPressed: () => _linkPolicyDialog(context, v),
-                        child: const Text('Link Policy'),
-                      )
-                    : const Icon(Icons.verified, color: Colors.green),
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Card(
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    leading: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primarySurface,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.directions_car,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    title: Text(v.displayName),
+                    subtitle: Text(
+                      v.policyId == null
+                          ? 'No insurance policy linked'
+                          : 'Policy linked',
+                    ),
+                    trailing: v.policyId == null
+                        ? TextButton(
+                            onPressed: () => _linkPolicyDialog(context, v),
+                            child: const Text('Link Policy'),
+                          )
+                        : const Icon(Icons.verified, color: AppColors.success),
+                  ),
+                ),
               );
             },
           );
@@ -67,33 +100,41 @@ class VehiclesScreen extends StatelessWidget {
               TextFormField(
                 controller: plateController,
                 decoration: const InputDecoration(labelText: 'Plate Number'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
               TextFormField(
                 controller: makeController,
                 decoration: const InputDecoration(labelText: 'Make'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
               TextFormField(
                 controller: modelController,
                 decoration: const InputDecoration(labelText: 'Model'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
-              await appState.firestoreService.addVehicle(Vehicle(
-                id: '',
-                ownerUid: appState.currentUser!.uid,
-                plateNumber: plateController.text.trim(),
-                make: makeController.text.trim(),
-                model: modelController.text.trim(),
-              ));
+              await appState.firestoreService.addVehicle(
+                Vehicle(
+                  id: '',
+                  ownerUid: appState.currentUser!.uid,
+                  plateNumber: plateController.text.trim(),
+                  make: makeController.text.trim(),
+                  model: modelController.text.trim(),
+                ),
+              );
               if (dialogContext.mounted) Navigator.pop(dialogContext);
             },
             child: const Text('Add'),
@@ -127,12 +168,14 @@ class VehiclesScreen extends StatelessWidget {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
             FilledButton(
               onPressed: () async {
-                final policy = await appState.firestoreService.findPolicyByNumber(
-                  policyController.text.trim(),
-                );
+                final policy = await appState.firestoreService
+                    .findPolicyByNumber(policyController.text.trim());
                 if (policy == null) {
                   setState(() => error = 'No policy found with that number.');
                   return;

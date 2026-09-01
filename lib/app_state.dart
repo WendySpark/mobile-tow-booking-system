@@ -9,8 +9,8 @@ import 'services/firestore_service.dart';
 /// to scope their Firestore queries (e.g. "my vehicles", "my policies").
 class AppState extends ChangeNotifier {
   AppState({AuthService? authService, FirestoreService? firestoreService})
-      : authService = authService ?? AuthService(),
-        firestoreService = firestoreService ?? FirestoreService();
+    : authService = authService ?? AuthService(),
+      firestoreService = firestoreService ?? FirestoreService();
 
   final AuthService authService;
   final FirestoreService firestoreService;

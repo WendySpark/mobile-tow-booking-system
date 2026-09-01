@@ -12,7 +12,8 @@ import '../models/vehicle.dart';
 /// Thin Firestore data-access layer shared by all three roles.
 /// Screens talk to this instead of `cloud_firestore` directly.
 class FirestoreService {
-  FirestoreService({FirebaseFirestore? firestore}) : _db = firestore ?? FirebaseFirestore.instance;
+  FirestoreService({FirebaseFirestore? firestore})
+    : _db = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _db;
 
@@ -22,8 +23,10 @@ class FirestoreService {
       .snapshots()
       .map((s) => s.docs.map((d) => AppUser.fromMap(d.id, d.data())).toList());
 
-  Future<void> setPreferredWorkshop(String userUid, String workshopId) =>
-      _db.collection('users').doc(userUid).update({'preferredWorkshopId': workshopId});
+  Future<void> setPreferredWorkshop(String userUid, String workshopId) => _db
+      .collection('users')
+      .doc(userUid)
+      .update({'preferredWorkshopId': workshopId});
 
   // ---- Vehicles ---------------------------------------------------------
   Future<String> addVehicle(Vehicle vehicle) async {
@@ -55,11 +58,17 @@ class FirestoreService {
       .collection('policies')
       .where('agentUid', isEqualTo: agentUid)
       .snapshots()
-      .map((s) => s.docs.map((d) => InsurancePolicy.fromMap(d.id, d.data())).toList());
+      .map(
+        (s) =>
+            s.docs.map((d) => InsurancePolicy.fromMap(d.id, d.data())).toList(),
+      );
 
   Future<InsurancePolicy?> findPolicyByNumber(String policyNumber) async {
-    final snap =
-        await _db.collection('policies').where('policyNumber', isEqualTo: policyNumber).limit(1).get();
+    final snap = await _db
+        .collection('policies')
+        .where('policyNumber', isEqualTo: policyNumber)
+        .limit(1)
+        .get();
     if (snap.docs.isEmpty) return null;
     return InsurancePolicy.fromMap(snap.docs.first.id, snap.docs.first.data());
   }
@@ -69,16 +78,25 @@ class FirestoreService {
     return doc.exists ? InsurancePolicy.fromMap(doc.id, doc.data()!) : null;
   }
 
-  Future<void> linkVehicleToPolicy({required String vehicleId, required String policyId}) async {
-    await _db.collection('vehicles').doc(vehicleId).update({'policyId': policyId});
-    await _db.collection('policies').doc(policyId).update({'vehicleId': vehicleId});
+  Future<void> linkVehicleToPolicy({
+    required String vehicleId,
+    required String policyId,
+  }) async {
+    await _db.collection('vehicles').doc(vehicleId).update({
+      'policyId': policyId,
+    });
+    await _db.collection('policies').doc(policyId).update({
+      'vehicleId': vehicleId,
+    });
   }
 
   // ---- Repair centers -----------------------------------------------------
   Stream<List<RepairCenter>> streamRepairCenters() => _db
       .collection('repairCenters')
       .snapshots()
-      .map((s) => s.docs.map((d) => RepairCenter.fromMap(d.id, d.data())).toList());
+      .map(
+        (s) => s.docs.map((d) => RepairCenter.fromMap(d.id, d.data())).toList(),
+      );
 
   Future<String> addRepairCenter(RepairCenter center) async {
     final doc = await _db.collection('repairCenters').add(center.toMap());
@@ -96,7 +114,8 @@ class FirestoreService {
   Future<void> setWorkshopCenter(String workshopUid, RepairCenter center) =>
       _db.collection('repairCenters').doc(workshopUid).set(center.toMap());
 
-  Future<RepairCenter?> getWorkshopCenter(String workshopUid) => getRepairCenter(workshopUid);
+  Future<RepairCenter?> getWorkshopCenter(String workshopUid) =>
+      getRepairCenter(workshopUid);
 
   // ---- Drivers (managed by a Workshop) -------------------------------------
   Future<String> addDriver(Driver driver) async {
@@ -107,7 +126,8 @@ class FirestoreService {
   Future<void> updateDriver(Driver driver) =>
       _db.collection('drivers').doc(driver.id).update(driver.toMap());
 
-  Future<void> deleteDriver(String id) => _db.collection('drivers').doc(id).delete();
+  Future<void> deleteDriver(String id) =>
+      _db.collection('drivers').doc(id).delete();
 
   Future<void> setDriverStatus(String id, DriverStatus status) =>
       _db.collection('drivers').doc(id).update({'status': status.value});
@@ -157,7 +177,10 @@ class FirestoreService {
   /// One-off fetch (not a stream) used to gate "Request a Tow" on
   /// outstanding payments without keeping a second listener alive.
   Future<List<Booking>> fetchBookingsForUser(String userUid) async {
-    final snap = await _db.collection('bookings').where('userUid', isEqualTo: userUid).get();
+    final snap = await _db
+        .collection('bookings')
+        .where('userUid', isEqualTo: userUid)
+        .get();
     return snap.docs.map((d) => Booking.fromMap(d.id, d.data())).toList();
   }
 
@@ -181,6 +204,8 @@ class FirestoreService {
     return (doc.data()?['defaultRatePerKm'] as num?)?.toDouble() ?? 5.0;
   }
 
-  Future<void> setDefaultRatePerKm(double rate) =>
-      _db.collection('settings').doc('towRates').set({'defaultRatePerKm': rate});
+  Future<void> setDefaultRatePerKm(double rate) => _db
+      .collection('settings')
+      .doc('towRates')
+      .set({'defaultRatePerKm': rate});
 }

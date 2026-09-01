@@ -21,28 +21,28 @@ class AppUser {
   });
 
   factory AppUser.fromMap(String uid, Map<String, dynamic> map) => AppUser(
-        uid: uid,
-        name: map['name'] as String? ?? '',
-        email: map['email'] as String? ?? '',
-        phone: map['phone'] as String? ?? '',
-        role: UserRoleX.fromValue(map['role'] as String? ?? 'user'),
-        preferredWorkshopId: map['preferredWorkshopId'] as String?,
-      );
+    uid: uid,
+    name: map['name'] as String? ?? '',
+    email: map['email'] as String? ?? '',
+    phone: map['phone'] as String? ?? '',
+    role: UserRoleX.fromValue(map['role'] as String? ?? 'user'),
+    preferredWorkshopId: map['preferredWorkshopId'] as String?,
+  );
 
   Map<String, dynamic> toMap() => {
-        'name': name,
-        'email': email,
-        'phone': phone,
-        'role': role.value,
-        'preferredWorkshopId': preferredWorkshopId,
-      };
+    'name': name,
+    'email': email,
+    'phone': phone,
+    'role': role.value,
+    'preferredWorkshopId': preferredWorkshopId,
+  };
 
   AppUser copyWith({String? preferredWorkshopId}) => AppUser(
-        uid: uid,
-        name: name,
-        email: email,
-        phone: phone,
-        role: role,
-        preferredWorkshopId: preferredWorkshopId ?? this.preferredWorkshopId,
-      );
+    uid: uid,
+    name: name,
+    email: email,
+    phone: phone,
+    role: role,
+    preferredWorkshopId: preferredWorkshopId ?? this.preferredWorkshopId,
+  );
 }

@@ -30,7 +30,9 @@ class RoutingService {
         '$_baseUrl/${start.longitude},${start.latitude};${end.longitude},${end.latitude}'
         '?overview=full&geometries=geojson',
       );
-      final response = await _client.get(uri).timeout(const Duration(seconds: 8));
+      final response = await _client
+          .get(uri)
+          .timeout(const Duration(seconds: 8));
       if (response.statusCode != 200) return _straightLineFallback(start, end);
 
       final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -49,7 +51,8 @@ class RoutingService {
     }
   }
 
-  RouteResult _straightLineFallback(LatLng start, LatLng end) => _buildRouteResult([start, end]);
+  RouteResult _straightLineFallback(LatLng start, LatLng end) =>
+      _buildRouteResult([start, end]);
 
   RouteResult _buildRouteResult(List<LatLng> points) {
     final cumulative = <double>[0];
@@ -62,7 +65,11 @@ class RoutingService {
       );
       cumulative.add(cumulative.last + segment);
     }
-    return RouteResult(points: points, cumulativeDistanceKm: cumulative, totalDistanceKm: cumulative.last);
+    return RouteResult(
+      points: points,
+      cumulativeDistanceKm: cumulative,
+      totalDistanceKm: cumulative.last,
+    );
   }
 
   void dispose() => _client.close();

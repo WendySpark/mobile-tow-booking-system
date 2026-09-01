@@ -16,21 +16,21 @@ class Vehicle {
   });
 
   factory Vehicle.fromMap(String id, Map<String, dynamic> map) => Vehicle(
-        id: id,
-        ownerUid: map['ownerUid'] as String? ?? '',
-        plateNumber: map['plateNumber'] as String? ?? '',
-        make: map['make'] as String? ?? '',
-        model: map['model'] as String? ?? '',
-        policyId: map['policyId'] as String?,
-      );
+    id: id,
+    ownerUid: map['ownerUid'] as String? ?? '',
+    plateNumber: map['plateNumber'] as String? ?? '',
+    make: map['make'] as String? ?? '',
+    model: map['model'] as String? ?? '',
+    policyId: map['policyId'] as String?,
+  );
 
   Map<String, dynamic> toMap() => {
-        'ownerUid': ownerUid,
-        'plateNumber': plateNumber,
-        'make': make,
-        'model': model,
-        'policyId': policyId,
-      };
+    'ownerUid': ownerUid,
+    'plateNumber': plateNumber,
+    'make': make,
+    'model': model,
+    'policyId': policyId,
+  };
 
   String get displayName => '$make $model ($plateNumber)';
 

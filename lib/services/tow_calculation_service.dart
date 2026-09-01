@@ -28,8 +28,8 @@ class TowCalculationService {
       final reason = policy == null
           ? 'No insurance policy linked to this vehicle.'
           : policy.status != PolicyStatus.active
-              ? 'Policy is ${policy.status.value}.'
-              : 'Policy has expired.';
+          ? 'Policy is ${policy.status.value}.'
+          : 'Policy has expired.';
       return TowQuote(
         totalDistanceKm: distanceKm,
         freeDistanceKm: 0,
@@ -41,8 +41,12 @@ class TowCalculationService {
       );
     }
 
-    final freeDistanceKm = distanceKm < policy.freeTowRadiusKm ? distanceKm : policy.freeTowRadiusKm;
-    final chargeableDistanceKm = distanceKm > policy.freeTowRadiusKm ? distanceKm - policy.freeTowRadiusKm : 0.0;
+    final freeDistanceKm = distanceKm < policy.freeTowRadiusKm
+        ? distanceKm
+        : policy.freeTowRadiusKm;
+    final chargeableDistanceKm = distanceKm > policy.freeTowRadiusKm
+        ? distanceKm - policy.freeTowRadiusKm
+        : 0.0;
 
     return TowQuote(
       totalDistanceKm: distanceKm,

@@ -28,27 +28,27 @@ class Driver {
   });
 
   factory Driver.fromMap(String id, Map<String, dynamic> map) => Driver(
-        id: id,
-        workshopUid: map['workshopUid'] as String? ?? '',
-        name: map['name'] as String? ?? '',
-        phone: map['phone'] as String? ?? '',
-        plateNumber: map['plateNumber'] as String? ?? '',
-        rating: (map['rating'] as num?)?.toDouble() ?? 4.5,
-        status: DriverStatusX.fromValue(map['status'] as String? ?? 'available'),
-        baseLat: (map['baseLat'] as num?)?.toDouble() ?? 0,
-        baseLng: (map['baseLng'] as num?)?.toDouble() ?? 0,
-      );
+    id: id,
+    workshopUid: map['workshopUid'] as String? ?? '',
+    name: map['name'] as String? ?? '',
+    phone: map['phone'] as String? ?? '',
+    plateNumber: map['plateNumber'] as String? ?? '',
+    rating: (map['rating'] as num?)?.toDouble() ?? 4.5,
+    status: DriverStatusX.fromValue(map['status'] as String? ?? 'available'),
+    baseLat: (map['baseLat'] as num?)?.toDouble() ?? 0,
+    baseLng: (map['baseLng'] as num?)?.toDouble() ?? 0,
+  );
 
   Map<String, dynamic> toMap() => {
-        'workshopUid': workshopUid,
-        'name': name,
-        'phone': phone,
-        'plateNumber': plateNumber,
-        'rating': rating,
-        'status': status.value,
-        'baseLat': baseLat,
-        'baseLng': baseLng,
-      };
+    'workshopUid': workshopUid,
+    'name': name,
+    'phone': phone,
+    'plateNumber': plateNumber,
+    'rating': rating,
+    'status': status.value,
+    'baseLat': baseLat,
+    'baseLng': baseLng,
+  };
 
   @override
   bool operator ==(Object other) => other is Driver && other.id == id;

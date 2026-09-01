@@ -7,6 +7,8 @@ import '../../app_state.dart';
 import '../../models/booking.dart';
 import '../../models/repair_center.dart';
 import '../../services/booking_analytics_service.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/empty_state.dart';
 
 /// Admin dashboard: revenue, booking volume over time, free-vs-chargeable
 /// mix, and busiest repair center — all derived from data already in
@@ -18,9 +20,9 @@ class AnalyticsScreen extends StatelessWidget {
 
   // Reused app status palette, kept fixed per series rather than cycled:
   // green = free/settled, indigo = chargeable/brand, orange = outstanding.
-  static const _freeColor = Color(0xFF2E7D32);
-  static const _chargeableColor = Color(0xFF3949AB);
-  static const _outstandingColor = Color(0xFFEF6C00);
+  static const _freeColor = AppColors.success;
+  static const _chargeableColor = AppColors.primary;
+  static const _outstandingColor = AppColors.warning;
 
   @override
   Widget build(BuildContext context) {
@@ -31,9 +33,17 @@ class AnalyticsScreen extends StatelessWidget {
       body: StreamBuilder<List<Booking>>(
         stream: appState.firestoreService.streamAllBookings(),
         builder: (context, bookingSnap) {
-          if (!bookingSnap.hasData) return const Center(child: CircularProgressIndicator());
+          if (!bookingSnap.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
           final bookings = bookingSnap.data!;
-          if (bookings.isEmpty) return const Center(child: Text('No bookings yet.'));
+          if (bookings.isEmpty) {
+            return const EmptyState(
+              icon: Icons.bar_chart_outlined,
+              title: 'No bookings yet',
+              subtitle: 'Analytics will appear once bookings start coming in.',
+            );
+          }
 
           final revenue = _analytics.totalRevenue(bookings);
           final outstanding = _analytics.totalOutstanding(bookings);
@@ -65,11 +75,20 @@ class AnalyticsScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 24),
-              Text('Bookings — Last 7 Days', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'Bookings — Last 7 Days',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 12),
-              SizedBox(height: 160, child: _BookingsPerDayChart(perDay: perDay)),
+              SizedBox(
+                height: 160,
+                child: _BookingsPerDayChart(perDay: perDay),
+              ),
               const SizedBox(height: 24),
-              Text('Free vs. Chargeable Tows', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'Free vs. Chargeable Tows',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 12),
               _FreeVsChargeable(
                 freeCount: freeCount,
@@ -78,12 +97,18 @@ class AnalyticsScreen extends StatelessWidget {
                 chargeableColor: _chargeableColor,
               ),
               const SizedBox(height: 24),
-              Text('Bookings by Repair Center', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'Bookings by Repair Center',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 12),
               StreamBuilder<List<RepairCenter>>(
                 stream: appState.firestoreService.streamRepairCenters(),
                 builder: (context, centerSnap) {
-                  final names = {for (final c in centerSnap.data ?? <RepairCenter>[]) c.id: c.name};
+                  final names = {
+                    for (final c in centerSnap.data ?? <RepairCenter>[])
+                      c.id: c.name,
+                  };
                   return Column(
                     children: [
                       for (final entry in byCenter.take(5))
@@ -105,7 +130,11 @@ class AnalyticsScreen extends StatelessWidget {
 }
 
 class _StatTile extends StatelessWidget {
-  const _StatTile({required this.label, required this.value, required this.color});
+  const _StatTile({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   final String label;
   final String value;
@@ -123,9 +152,19 @@ class _StatTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );
@@ -146,9 +185,15 @@ class _BookingsPerDayChart extends StatelessWidget {
         gridData: const FlGridData(show: false),
         borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
-          leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          leftTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
@@ -157,7 +202,10 @@ class _BookingsPerDayChart extends StatelessWidget {
                 if (i < 0 || i >= perDay.length) return const SizedBox.shrink();
                 return Padding(
                   padding: const EdgeInsets.only(top: 4),
-                  child: Text(DateFormat.E().format(perDay[i].key), style: const TextStyle(fontSize: 11)),
+                  child: Text(
+                    DateFormat.E().format(perDay[i].key),
+                    style: const TextStyle(fontSize: 11),
+                  ),
                 );
               },
             ),
@@ -170,9 +218,11 @@ class _BookingsPerDayChart extends StatelessWidget {
               barRods: [
                 BarChartRodData(
                   toY: perDay[i].value.toDouble(),
-                  color: const Color(0xFF3949AB),
+                  color: AppColors.primary,
                   width: 18,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(4),
+                  ),
                 ),
               ],
             ),
@@ -219,16 +269,28 @@ class _FreeVsChargeable extends StatelessWidget {
                 PieChartSectionData(
                   value: freeCount.toDouble(),
                   color: freeColor,
-                  title: total == 0 ? '' : '${(freeCount / total * 100).round()}%',
+                  title: total == 0
+                      ? ''
+                      : '${(freeCount / total * 100).round()}%',
                   radius: 24,
-                  titleStyle: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold),
+                  titleStyle: const TextStyle(
+                    fontSize: 11,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 PieChartSectionData(
                   value: chargeableCount.toDouble(),
                   color: chargeableColor,
-                  title: total == 0 ? '' : '${(chargeableCount / total * 100).round()}%',
+                  title: total == 0
+                      ? ''
+                      : '${(chargeableCount / total * 100).round()}%',
                   radius: 24,
-                  titleStyle: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold),
+                  titleStyle: const TextStyle(
+                    fontSize: 11,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -241,7 +303,11 @@ class _FreeVsChargeable extends StatelessWidget {
             children: [
               _LegendRow(color: freeColor, label: 'Free', count: freeCount),
               const SizedBox(height: 8),
-              _LegendRow(color: chargeableColor, label: 'Chargeable', count: chargeableCount),
+              _LegendRow(
+                color: chargeableColor,
+                label: 'Chargeable',
+                count: chargeableCount,
+              ),
             ],
           ),
         ),
@@ -251,7 +317,11 @@ class _FreeVsChargeable extends StatelessWidget {
 }
 
 class _LegendRow extends StatelessWidget {
-  const _LegendRow({required this.color, required this.label, required this.count});
+  const _LegendRow({
+    required this.color,
+    required this.label,
+    required this.count,
+  });
 
   final Color color;
   final String label;
@@ -261,7 +331,11 @@ class _LegendRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
         const SizedBox(width: 8),
         Text('$label ($count)'),
       ],
@@ -270,7 +344,11 @@ class _LegendRow extends StatelessWidget {
 }
 
 class _CenterBar extends StatelessWidget {
-  const _CenterBar({required this.name, required this.count, required this.maxCount});
+  const _CenterBar({
+    required this.name,
+    required this.count,
+    required this.maxCount,
+  });
 
   final String name;
   final int count;
@@ -283,15 +361,18 @@ class _CenterBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          SizedBox(width: 110, child: Text(name, overflow: TextOverflow.ellipsis)),
+          SizedBox(
+            width: 110,
+            child: Text(name, overflow: TextOverflow.ellipsis),
+          ),
           Expanded(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
                 value: fraction,
                 minHeight: 14,
-                backgroundColor: const Color(0xFF3949AB).withValues(alpha: 0.08),
-                valueColor: const AlwaysStoppedAnimation(Color(0xFF3949AB)),
+                backgroundColor: AppColors.primary.withValues(alpha: 0.08),
+                valueColor: const AlwaysStoppedAnimation(AppColors.primary),
               ),
             ),
           ),

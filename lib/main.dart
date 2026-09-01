@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'app_state.dart';
 import 'firebase_options.dart';
 import 'screens/role_router.dart';
+import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,10 +23,7 @@ class MobileTowBookingApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Mobile Tow Booking System',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
-          useMaterial3: true,
-        ),
+        theme: AppTheme.light,
         home: const RoleRouter(),
       ),
     );

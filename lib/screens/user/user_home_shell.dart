@@ -33,7 +33,10 @@ class _UserHomeShellState extends State<UserHomeShell> {
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.directions_car), label: 'Vehicles'),
+          NavigationDestination(
+            icon: Icon(Icons.directions_car),
+            label: 'Vehicles',
+          ),
           NavigationDestination(icon: Icon(Icons.payments), label: 'Payments'),
           NavigationDestination(icon: Icon(Icons.history), label: 'History'),
           NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),

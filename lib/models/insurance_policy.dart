@@ -4,9 +4,9 @@ extension PolicyStatusX on PolicyStatus {
   String get value => name;
 
   static PolicyStatus fromValue(String value) => PolicyStatus.values.firstWhere(
-        (s) => s.value == value,
-        orElse: () => PolicyStatus.active,
-      );
+    (s) => s.value == value,
+    orElse: () => PolicyStatus.active,
+  );
 }
 
 /// An insurance policy created by an Insurance Agent, linked to a vehicle.
@@ -33,26 +33,29 @@ class InsurancePolicy {
     required this.expiryDate,
   });
 
-  bool get isValid => status == PolicyStatus.active && expiryDate.isAfter(DateTime.now());
+  bool get isValid =>
+      status == PolicyStatus.active && expiryDate.isAfter(DateTime.now());
 
-  factory InsurancePolicy.fromMap(String id, Map<String, dynamic> map) => InsurancePolicy(
+  factory InsurancePolicy.fromMap(String id, Map<String, dynamic> map) =>
+      InsurancePolicy(
         id: id,
         policyNumber: map['policyNumber'] as String? ?? '',
         agentUid: map['agentUid'] as String? ?? '',
         vehicleId: map['vehicleId'] as String?,
         freeTowRadiusKm: (map['freeTowRadiusKm'] as num?)?.toDouble() ?? 0,
-        ratePerKmAfterFree: (map['ratePerKmAfterFree'] as num?)?.toDouble() ?? 0,
+        ratePerKmAfterFree:
+            (map['ratePerKmAfterFree'] as num?)?.toDouble() ?? 0,
         status: PolicyStatusX.fromValue(map['status'] as String? ?? 'active'),
         expiryDate: DateTime.parse(map['expiryDate'] as String),
       );
 
   Map<String, dynamic> toMap() => {
-        'policyNumber': policyNumber,
-        'agentUid': agentUid,
-        'vehicleId': vehicleId,
-        'freeTowRadiusKm': freeTowRadiusKm,
-        'ratePerKmAfterFree': ratePerKmAfterFree,
-        'status': status.value,
-        'expiryDate': expiryDate.toIso8601String(),
-      };
+    'policyNumber': policyNumber,
+    'agentUid': agentUid,
+    'vehicleId': vehicleId,
+    'freeTowRadiusKm': freeTowRadiusKm,
+    'ratePerKmAfterFree': ratePerKmAfterFree,
+    'status': status.value,
+    'expiryDate': expiryDate.toIso8601String(),
+  };
 }

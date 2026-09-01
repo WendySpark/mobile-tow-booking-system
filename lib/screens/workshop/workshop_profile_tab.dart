@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../app_state.dart';
 import '../../models/repair_center.dart';
+import '../../theme/app_theme.dart';
 
 /// Lets a Workshop set (and later edit) the location Users will pick it up
 /// from in Request Tow — covers "user can choose... their preferred
@@ -36,7 +37,9 @@ class _WorkshopProfileTabState extends State<WorkshopProfileTab> {
 
   Future<void> _load() async {
     final appState = context.read<AppState>();
-    final center = await appState.firestoreService.getWorkshopCenter(appState.currentUser!.uid);
+    final center = await appState.firestoreService.getWorkshopCenter(
+      appState.currentUser!.uid,
+    );
     if (!mounted) return;
     setState(() {
       _isLoading = false;
@@ -52,9 +55,11 @@ class _WorkshopProfileTabState extends State<WorkshopProfileTab> {
   }
 
   Future<void> _save() async {
-    if (_nameController.text.trim().isEmpty || _addressController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Name and address are required.')));
+    if (_nameController.text.trim().isEmpty ||
+        _addressController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Name and address are required.')),
+      );
       return;
     }
     setState(() => _isSaving = true);
@@ -76,7 +81,8 @@ class _WorkshopProfileTabState extends State<WorkshopProfileTab> {
       _isSaving = false;
       _hasExistingCenter = true;
     });
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Workshop saved.')));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Workshop saved.')));
   }
 
   @override
@@ -104,43 +110,78 @@ class _WorkshopProfileTabState extends State<WorkshopProfileTab> {
                 margin: const EdgeInsets.all(16),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.shade200),
+                  color: AppColors.warningSurface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.warning.withValues(alpha: 0.25),
+                  ),
                 ),
-                child: Text(
-                  'Set up your workshop location so Users can find and book you.',
-                  style: TextStyle(color: Colors.orange.shade900),
+                child: const Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: AppColors.warning,
+                      size: 18,
+                    ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Set up your workshop location so Users can find and book you.',
+                        style: TextStyle(
+                          color: AppColors.warning,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            SizedBox(
-              height: 260,
-              child: FlutterMap(
-                mapController: _mapController,
-                options: MapOptions(
-                  initialCenter: _location,
-                  initialZoom: 13,
-                  onTap: (tapPosition, point) => setState(() => _location = point),
-                ),
-                children: [
-                  TileLayer(
-                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'com.towbooking.mobile_tow_booking_system',
-                  ),
-                  MarkerLayer(markers: [
-                    Marker(
-                      point: _location,
-                      width: 40,
-                      height: 40,
-                      child: const Icon(Icons.build_circle, color: Colors.indigo, size: 36),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: SizedBox(
+                  height: 240,
+                  child: FlutterMap(
+                    mapController: _mapController,
+                    options: MapOptions(
+                      initialCenter: _location,
+                      initialZoom: 13,
+                      onTap: (tapPosition, point) =>
+                          setState(() => _location = point),
                     ),
-                  ]),
-                ],
+                    children: [
+                      TileLayer(
+                        urlTemplate:
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName:
+                            'com.towbooking.mobile_tow_booking_system',
+                      ),
+                      MarkerLayer(
+                        markers: [
+                          Marker(
+                            point: _location,
+                            width: 40,
+                            height: 40,
+                            child: const Icon(
+                              Icons.build_circle,
+                              color: AppColors.primary,
+                              size: 36,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text('Tap the map to set your workshop location.', style: TextStyle(fontSize: 12)),
+              child: Text(
+                'Tap the map to set your workshop location.',
+                style: TextStyle(fontSize: 12),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.all(16),
@@ -149,7 +190,9 @@ class _WorkshopProfileTabState extends State<WorkshopProfileTab> {
                 children: [
                   TextField(
                     controller: _nameController,
-                    decoration: const InputDecoration(labelText: 'Workshop Name'),
+                    decoration: const InputDecoration(
+                      labelText: 'Workshop Name',
+                    ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
@@ -161,8 +204,15 @@ class _WorkshopProfileTabState extends State<WorkshopProfileTab> {
                     onPressed: _isSaving ? null : _save,
                     child: _isSaving
                         ? const SizedBox(
-                            height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                        : Text(_hasExistingCenter ? 'Save Changes' : 'Create Workshop'),
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            _hasExistingCenter
+                                ? 'Save Changes'
+                                : 'Create Workshop',
+                          ),
                   ),
                 ],
               ),

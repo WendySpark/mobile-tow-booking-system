@@ -32,10 +32,16 @@ class _AdminHomeShellState extends State<AdminHomeShell> {
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.local_shipping), label: 'Bookings'),
+          NavigationDestination(
+            icon: Icon(Icons.local_shipping),
+            label: 'Bookings',
+          ),
           NavigationDestination(icon: Icon(Icons.people), label: 'Users'),
           NavigationDestination(icon: Icon(Icons.build), label: 'Centers'),
-          NavigationDestination(icon: Icon(Icons.bar_chart), label: 'Analytics'),
+          NavigationDestination(
+            icon: Icon(Icons.bar_chart),
+            label: 'Analytics',
+          ),
           NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),

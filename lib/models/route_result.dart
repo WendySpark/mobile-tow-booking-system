@@ -25,10 +25,13 @@ class RouteResult {
     final target = totalDistanceKm * t.clamp(0.0, 1.0);
 
     for (var i = 1; i < cumulativeDistanceKm.length; i++) {
-      if (target <= cumulativeDistanceKm[i] || i == cumulativeDistanceKm.length - 1) {
+      if (target <= cumulativeDistanceKm[i] ||
+          i == cumulativeDistanceKm.length - 1) {
         final segmentStart = cumulativeDistanceKm[i - 1];
         final segmentLength = cumulativeDistanceKm[i] - segmentStart;
-        final segmentT = segmentLength == 0 ? 0.0 : (target - segmentStart) / segmentLength;
+        final segmentT = segmentLength == 0
+            ? 0.0
+            : (target - segmentStart) / segmentLength;
         final a = points[i - 1];
         final b = points[i];
         return LatLng(

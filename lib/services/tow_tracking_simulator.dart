@@ -29,7 +29,9 @@ class TowTrackingSimulator {
   final Duration duration;
 
   final ValueNotifier<LatLng> position;
-  final ValueNotifier<BookingStatus> status = ValueNotifier(BookingStatus.confirmed);
+  final ValueNotifier<BookingStatus> status = ValueNotifier(
+    BookingStatus.confirmed,
+  );
 
   Timer? _timer;
   DateTime? _startedAt;
@@ -43,7 +45,10 @@ class TowTrackingSimulator {
 
   void _onTick(Timer timer) {
     final elapsed = DateTime.now().difference(_startedAt!);
-    final t = (elapsed.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0);
+    final t = (elapsed.inMilliseconds / duration.inMilliseconds).clamp(
+      0.0,
+      1.0,
+    );
 
     position.value = route.pointAt(t);
 

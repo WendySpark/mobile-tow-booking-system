@@ -30,8 +30,14 @@ class _WorkshopHomeShellState extends State<WorkshopHomeShell> {
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.storefront), label: 'My Workshop'),
-          NavigationDestination(icon: Icon(Icons.local_shipping), label: 'Drivers'),
+          NavigationDestination(
+            icon: Icon(Icons.storefront),
+            label: 'My Workshop',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.local_shipping),
+            label: 'Drivers',
+          ),
           NavigationDestination(icon: Icon(Icons.list_alt), label: 'Bookings'),
           NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
         ],

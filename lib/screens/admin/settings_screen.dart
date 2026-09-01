@@ -18,7 +18,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    context.read<AppState>().firestoreService.getDefaultRatePerKm().then((rate) {
+    context.read<AppState>().firestoreService.getDefaultRatePerKm().then((
+      rate,
+    ) {
       if (mounted) _rateController.text = rate.toString();
     });
   }
@@ -47,13 +49,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
             TextField(
               controller: _rateController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Default Rate (RM/km)'),
+              decoration: const InputDecoration(
+                labelText: 'Default Rate (RM/km)',
+              ),
             ),
             const SizedBox(height: 16),
             FilledButton(
               onPressed: _isSaving ? null : _save,
               child: _isSaving
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                   : const Text('Save'),
             ),
           ],
@@ -68,7 +76,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await context.read<AppState>().firestoreService.setDefaultRatePerKm(rate);
     if (mounted) {
       setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved.')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Saved.')));
     }
   }
 }

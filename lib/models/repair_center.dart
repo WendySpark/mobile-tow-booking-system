@@ -20,7 +20,8 @@ class RepairCenter {
     this.ownerUid,
   });
 
-  factory RepairCenter.fromMap(String id, Map<String, dynamic> map) => RepairCenter(
+  factory RepairCenter.fromMap(String id, Map<String, dynamic> map) =>
+      RepairCenter(
         id: id,
         name: map['name'] as String? ?? '',
         address: map['address'] as String? ?? '',
@@ -30,12 +31,12 @@ class RepairCenter {
       );
 
   Map<String, dynamic> toMap() => {
-        'name': name,
-        'address': address,
-        'latitude': latitude,
-        'longitude': longitude,
-        'ownerUid': ownerUid,
-      };
+    'name': name,
+    'address': address,
+    'latitude': latitude,
+    'longitude': longitude,
+    'ownerUid': ownerUid,
+  };
 
   // See Vehicle.== — same StreamBuilder re-identity issue applies here
   // since this is also used as a DropdownButtonFormField value.

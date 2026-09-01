@@ -4,6 +4,9 @@ import 'package:provider/provider.dart';
 
 import '../../app_state.dart';
 import '../../models/insurance_policy.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/empty_state.dart';
+import '../../widgets/staggered_list_view.dart';
 
 /// Covers "vehicle insurance information database" — the Insurance Agent's
 /// side of creating/maintaining policy records (free tow radius + rate).
@@ -17,28 +20,53 @@ class ManagePoliciesScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Manage Policies')),
       body: StreamBuilder<List<InsurancePolicy>>(
-        stream: appState.firestoreService.streamPoliciesForAgent(appState.currentUser!.uid),
+        stream: appState.firestoreService.streamPoliciesForAgent(
+          appState.currentUser!.uid,
+        ),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          if (!snapshot.hasData)
+            return const Center(child: CircularProgressIndicator());
           final policies = snapshot.data!;
-          if (policies.isEmpty) return const Center(child: Text('No policies yet. Tap + to add one.'));
+          if (policies.isEmpty) {
+            return const EmptyState(
+              icon: Icons.shield_outlined,
+              title: 'No policies yet',
+              subtitle:
+                  'Tap the + button to create your first insurance policy.',
+            );
+          }
 
-          return ListView.builder(
+          return StaggeredListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
             itemCount: policies.length,
             itemBuilder: (context, i) {
               final p = policies[i];
-              return ListTile(
-                leading: Icon(
-                  Icons.shield,
-                  color: p.isValid ? Colors.green : Colors.grey,
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Card(
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    leading: CircleAvatar(
+                      backgroundColor:
+                          (p.isValid ? AppColors.success : AppColors.inkMuted)
+                              .withValues(alpha: 0.12),
+                      foregroundColor: p.isValid
+                          ? AppColors.success
+                          : AppColors.inkMuted,
+                      child: const Icon(Icons.shield, size: 20),
+                    ),
+                    title: Text(p.policyNumber),
+                    subtitle: Text(
+                      'Free radius: ${p.freeTowRadiusKm} km · Rate: RM ${p.ratePerKmAfterFree}/km · '
+                      'Expires ${DateFormat.yMMMd().format(p.expiryDate)}',
+                    ),
+                    trailing: Text(p.status.value),
+                    onTap: () => _editPolicyDialog(context, existing: p),
+                  ),
                 ),
-                title: Text(p.policyNumber),
-                subtitle: Text(
-                  'Free radius: ${p.freeTowRadiusKm} km · Rate: RM ${p.ratePerKmAfterFree}/km · '
-                  'Expires ${DateFormat.yMMMd().format(p.expiryDate)}',
-                ),
-                trailing: Text(p.status.value),
-                onTap: () => _editPolicyDialog(context, existing: p),
               );
             },
           );
@@ -51,13 +79,23 @@ class ManagePoliciesScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _editPolicyDialog(BuildContext context, {InsurancePolicy? existing}) async {
+  Future<void> _editPolicyDialog(
+    BuildContext context, {
+    InsurancePolicy? existing,
+  }) async {
     final appState = context.read<AppState>();
-    final numberController = TextEditingController(text: existing?.policyNumber ?? '');
-    final radiusController = TextEditingController(text: existing?.freeTowRadiusKm.toString() ?? '10');
-    final rateController = TextEditingController(text: existing?.ratePerKmAfterFree.toString() ?? '2');
+    final numberController = TextEditingController(
+      text: existing?.policyNumber ?? '',
+    );
+    final radiusController = TextEditingController(
+      text: existing?.freeTowRadiusKm.toString() ?? '10',
+    );
+    final rateController = TextEditingController(
+      text: existing?.ratePerKmAfterFree.toString() ?? '2',
+    );
     var status = existing?.status ?? PolicyStatus.active;
-    var expiry = existing?.expiryDate ?? DateTime.now().add(const Duration(days: 365));
+    var expiry =
+        existing?.expiryDate ?? DateTime.now().add(const Duration(days: 365));
     final formKey = GlobalKey<FormState>();
 
     await showDialog(
@@ -73,40 +111,58 @@ class ManagePoliciesScreen extends StatelessWidget {
                 children: [
                   TextFormField(
                     controller: numberController,
-                    decoration: const InputDecoration(labelText: 'Policy Number'),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    decoration: const InputDecoration(
+                      labelText: 'Policy Number',
+                    ),
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Required' : null,
                   ),
                   TextFormField(
                     controller: radiusController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Free Tow Radius (km)'),
-                    validator: (v) => double.tryParse(v ?? '') == null ? 'Enter a number' : null,
+                    decoration: const InputDecoration(
+                      labelText: 'Free Tow Radius (km)',
+                    ),
+                    validator: (v) => double.tryParse(v ?? '') == null
+                        ? 'Enter a number'
+                        : null,
                   ),
                   TextFormField(
                     controller: rateController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Rate After Free (RM/km)'),
-                    validator: (v) => double.tryParse(v ?? '') == null ? 'Enter a number' : null,
+                    decoration: const InputDecoration(
+                      labelText: 'Rate After Free (RM/km)',
+                    ),
+                    validator: (v) => double.tryParse(v ?? '') == null
+                        ? 'Enter a number'
+                        : null,
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<PolicyStatus>(
                     initialValue: status,
                     decoration: const InputDecoration(labelText: 'Status'),
                     items: PolicyStatus.values
-                        .map((s) => DropdownMenuItem(value: s, child: Text(s.value)))
+                        .map(
+                          (s) =>
+                              DropdownMenuItem(value: s, child: Text(s.value)),
+                        )
                         .toList(),
                     onChanged: (s) => setState(() => status = s!),
                   ),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text('Expires: ${DateFormat.yMMMd().format(expiry)}'),
+                    title: Text(
+                      'Expires: ${DateFormat.yMMMd().format(expiry)}',
+                    ),
                     trailing: const Icon(Icons.calendar_today),
                     onTap: () async {
                       final picked = await showDatePicker(
                         context: dialogContext,
                         initialDate: expiry,
                         firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+                        lastDate: DateTime.now().add(
+                          const Duration(days: 365 * 5),
+                        ),
                       );
                       if (picked != null) setState(() => expiry = picked);
                     },
@@ -116,7 +172,10 @@ class ManagePoliciesScreen extends StatelessWidget {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
             FilledButton(
               onPressed: () async {
                 if (!formKey.currentState!.validate()) return;
